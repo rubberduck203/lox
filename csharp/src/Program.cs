@@ -72,14 +72,65 @@ namespace lox
     public class Scanner
     {
         private readonly string source;
+        private readonly List<Token> tokens = new List<Token>();
 
         public Scanner(string source)
         {
             this.source = source;
         }
 
-        public List<Token> ScanTokens() => new List<Token>();
-    }
+        private int start = 0;
+        private int current = 0;
+        private int line = 1;
 
-    public struct Token{}
+        public List<Token> ScanTokens() {
+            //TODO: this can probably be expressed as a foreach
+            // or linq expression
+            while(!IsAtEnd())
+            {
+                start = current;
+                ScanToken();
+            }
+
+            this.tokens.Add(new Token(TokenType.EoF, String.Empty, null, line));
+            return tokens;
+        }
+
+        private bool IsAtEnd() => 
+            this.current >= this.source.Length;
+        private void ScanToken()
+        {
+            var c = Advance();
+            switch (c) 
+            {
+                //todo return the tokentype and call AddToken once
+                case '(': AddToken(TokenType.LeftParen); break;
+                case ')': AddToken(TokenType.RightParen); break;
+                case '{': AddToken(TokenType.LeftBrace); break;
+                case '}': AddToken(TokenType.RightBrace); break;
+                case ',': AddToken(TokenType.Comma); break;
+                case '.': AddToken(TokenType.Dot); break;
+                case '-': AddToken(TokenType.Minus); break;
+                case '+': AddToken(TokenType.Plus); break;
+                case ';': AddToken(TokenType.Semicolon); break;
+                case '*': AddToken(TokenType.Star); break; 
+            }
+        }
+
+        private char Advance()
+        {
+            this.current++;
+            return this.source[current - 1];
+        }
+
+        private void AddToken(TokenType tokenType) =>
+            AddToken(tokenType, null);
+
+        private void AddToken(TokenType tokenType, object literal)
+        {
+            var text = this.source.Substring(start, current - start);
+            this.tokens.Add(new Token(tokenType, text, literal, this.line));
+        }
+
+    }
 }
