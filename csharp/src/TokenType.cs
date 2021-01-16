@@ -43,6 +43,7 @@ namespace lox
         True,
         Var,
         While,
-        EoF
+        EoF,
+        EqualEqual
     }
 }

@@ -57,7 +57,7 @@ namespace lox
             }
         }
 
-        private static void Error(int line, String message)
+        public static void Error(int line, String message)
         {
             Report(line, "", message);
         }
@@ -103,7 +103,8 @@ namespace lox
             var c = Advance();
             switch (c) 
             {
-                //todo return the tokentype and call AddToken once
+                //todo: return the tokentype and call AddToken once
+                /* single char lexemes */
                 case '(': AddToken(TokenType.LeftParen); break;
                 case ')': AddToken(TokenType.RightParen); break;
                 case '{': AddToken(TokenType.LeftBrace); break;
@@ -113,14 +114,80 @@ namespace lox
                 case '-': AddToken(TokenType.Minus); break;
                 case '+': AddToken(TokenType.Plus); break;
                 case ';': AddToken(TokenType.Semicolon); break;
-                case '*': AddToken(TokenType.Star); break; 
+                case '*': AddToken(TokenType.Star); break;
+                /* two char lexemes */
+                case '!': AddToken(Match('=') ? TokenType.BangEqual : TokenType.Bang);
+                    break;
+                case '=': AddToken(Match('=') ? TokenType.EqualEqual : TokenType.Equal);
+                    break;
+                case '<': AddToken(Match('=') ? TokenType.LessEqual : TokenType.Less);
+                    break;
+                case '>': AddToken(Match('=') ? TokenType.GreaterEqual : TokenType.Greater);
+                    break;
+                case '/':
+                    // a slash could indicate division or the beginning of a comment
+                    if(Match('/'))
+                    {
+                        //comments go to the end of the line
+                        //a better version would store the comment as metadata to assist in automated refactrings, etc.
+                        //TODO: Environment.Newline is better, but is often multiple characters
+                        while(Peek() != '\n' && !IsAtEnd())
+                        {
+                            Advance();
+                        }
+                    }
+                    else
+                    {
+                        AddToken(TokenType.Slash);
+                    }
+                    break;
+                /* whitespace */
+                case ' ':
+                case '\r':
+                case '\t':
+                    /* ignore whitespace */
+                    break;
+                case '\n':
+                    this.line++;
+                    break;
+                default:
+                    //TODO: this is totally gross, we should return a Result
+                    Program.Error(line, "Unexpected character.");
+                    break;
             }
         }
 
+        //consumes next character
         private char Advance()
         {
             this.current++;
-            return this.source[current - 1];
+            return this.source[this.current - 1];
+        }
+
+        //consumes next character if it matches expected
+        private bool Match(char expected)
+        {
+            // /* alternative impl in terms of peek and advance */
+            // if (Peek() == expected)
+            // {
+            //     Advance();
+            //     return true;
+            // }
+
+            // return false;
+
+            if (IsAtEnd()) return false;
+            if (this.source[this.current] != expected) return false;
+
+            this.current++;
+            return true;
+        }
+
+        // returns current character without consuming it
+        private char Peek()
+        {
+            if (IsAtEnd()) return '\0';
+            return this.source[current];
         }
 
         private void AddToken(TokenType tokenType) =>
