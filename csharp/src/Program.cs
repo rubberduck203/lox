@@ -151,6 +151,7 @@ namespace lox
                     this.line++;
                     break;
                 case '"': ScanString(); break;
+                case char cur when IsDigit(cur): ScanNumber(); break;
                 default:
                     //TODO: this is totally gross, we should return a Result
                     Program.Error(line, "Unexpected character.");
@@ -191,6 +192,13 @@ namespace lox
             return this.source[current];
         }
 
+        private char PeekNext()
+        {
+            // IsAtEnd using the next index instead of current one
+            if (this.current + 1 >= source.Length) return '\0';
+            return this.source[current + 1];
+        }
+
         private void ScanString()
         {
             while(Peek() != '"' && !IsAtEnd())
@@ -210,23 +218,48 @@ namespace lox
             // consume the closing double quote.
             Advance();
 
-            // Trim the surrounding quotes while producing the value
-            var value = this.source.Substring(start + 1, CurrentLexemeLength() - 1);
+            // slightly less efficient but more clear than directly indexing them out
+            var value = CurrentLexeme().Trim('"');
             AddToken(TokenType.String, value);
         }
+
+        private void ScanNumber()
+        {
+            while(IsDigit(Peek())) 
+            {
+                Advance();
+            }
+
+            if(Peek() == '.' && IsDigit(PeekNext()))
+            {
+                //consume the dot
+                Advance();
+            }
+
+            while(IsDigit(Peek()))
+            {
+                Advance();
+            }
+
+            AddToken(TokenType.Number, Double.Parse(CurrentLexeme()));
+        }
+
+        private bool IsDigit(char c) =>
+            c >= '0' && c <= '9';
 
         private void AddToken(TokenType tokenType) =>
             AddToken(tokenType, null);
 
-        private void AddToken(TokenType tokenType, object literal)
+        private void AddToken(TokenType tokenType, object literal) =>
+            this.tokens.Add(new Token(tokenType, CurrentLexeme(), literal, this.line));
+
+        /// Returns the current lexeme
+        /// Note: Keep in mind that at any given point in time, the lexeme may be incomplete
+        /// It's your job to call this at the right time.
+        private string CurrentLexeme()
         {
-            var text = this.source.Substring(start, CurrentLexemeLength());
-            this.tokens.Add(new Token(tokenType, text, literal, this.line));
+            var length = this.current - this.start;
+            return this.source.Substring(this.start, length);
         }
-
-        // transforms current and start indexes into the length of the current lexmeme
-        // keep in mind that the lexeme may not be complete at any given point in time
-        private int CurrentLexemeLength() => this.current - this.start;
-
     }
 }
