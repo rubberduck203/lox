@@ -150,6 +150,7 @@ namespace lox
                 case '\n':
                     this.line++;
                     break;
+                case '"': ScanString(); break;
                 default:
                     //TODO: this is totally gross, we should return a Result
                     Program.Error(line, "Unexpected character.");
@@ -190,14 +191,42 @@ namespace lox
             return this.source[current];
         }
 
+        private void ScanString()
+        {
+            while(Peek() != '"' && !IsAtEnd())
+            {
+                if (Peek() == '\n')
+                {
+                    line++;
+                }
+                Advance();
+            }
+
+            if(IsAtEnd()) 
+            {
+                Program.Error(line, "Unterminated string");
+                return;
+            }
+            // consume the closing double quote.
+            Advance();
+
+            // Trim the surrounding quotes while producing the value
+            var value = this.source.Substring(start + 1, CurrentLexemeLength() - 1);
+            AddToken(TokenType.String, value);
+        }
+
         private void AddToken(TokenType tokenType) =>
             AddToken(tokenType, null);
 
         private void AddToken(TokenType tokenType, object literal)
         {
-            var text = this.source.Substring(start, current - start);
+            var text = this.source.Substring(start, CurrentLexemeLength());
             this.tokens.Add(new Token(tokenType, text, literal, this.line));
         }
+
+        // transforms current and start indexes into the length of the current lexmeme
+        // keep in mind that the lexeme may not be complete at any given point in time
+        private int CurrentLexemeLength() => this.current - this.start;
 
     }
 }
