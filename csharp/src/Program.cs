@@ -74,6 +74,24 @@ namespace lox
         private readonly string source;
         private readonly List<Token> tokens = new List<Token>();
 
+        private readonly Dictionary<String, TokenType> keywords = new Dictionary<string, TokenType>() {
+            {"and", TokenType.And},
+            {"class", TokenType.Class},
+            {"else", TokenType.Else},
+            {"false", TokenType.False},
+            {"for", TokenType.For},
+            {"if", TokenType.If},
+            {"nil", TokenType.Nil},
+            {"or", TokenType.Or},
+            {"print", TokenType.Print},
+            {"return", TokenType.Return},
+            {"super", TokenType.Super},
+            {"this", TokenType.This},
+            {"true", TokenType.True},
+            {"var", TokenType.Var},
+            {"while", TokenType.While}
+        };
+
         public Scanner(string source)
         {
             this.source = source;
@@ -152,6 +170,7 @@ namespace lox
                     break;
                 case '"': ScanString(); break;
                 case char cur when Char.IsDigit(cur): ScanNumber(); break;
+                case char cur when Char.IsLetter(cur): ScanIdentifier(); break;
                 default:
                     //TODO: this is totally gross, we should return a Result
                     Program.Error(line, "Unexpected character.");
@@ -242,6 +261,26 @@ namespace lox
             }
 
             AddToken(TokenType.Number, Double.Parse(CurrentLexeme()));
+        }
+
+        private void ScanIdentifier()
+        {
+            bool IsAlphaNumericOrUnderScore(char c) =>
+                Char.IsLetterOrDigit(c) || c == '_';
+
+            while (IsAlphaNumericOrUnderScore(Peek()))
+            {
+                Advance();
+            }
+
+            if (keywords.TryGetValue(CurrentLexeme(), out TokenType tokenType))
+            {
+                AddToken(tokenType);
+            }
+            else
+            {
+                AddToken(TokenType.Identifier);
+            }
         }
 
         private void AddToken(TokenType tokenType) =>

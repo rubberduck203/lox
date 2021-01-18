@@ -44,6 +44,6 @@ namespace lox
         Var,
         While,
         EoF,
-        EqualEqual
+        EqualEqual,
     }
 }
