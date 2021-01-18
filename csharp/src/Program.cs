@@ -151,7 +151,7 @@ namespace lox
                     this.line++;
                     break;
                 case '"': ScanString(); break;
-                case char cur when IsDigit(cur): ScanNumber(); break;
+                case char cur when Char.IsDigit(cur): ScanNumber(); break;
                 default:
                     //TODO: this is totally gross, we should return a Result
                     Program.Error(line, "Unexpected character.");
@@ -225,27 +225,24 @@ namespace lox
 
         private void ScanNumber()
         {
-            while(IsDigit(Peek())) 
+            while(Char.IsDigit(Peek())) 
             {
                 Advance();
             }
 
-            if(Peek() == '.' && IsDigit(PeekNext()))
+            if(Peek() == '.' && Char.IsDigit(PeekNext()))
             {
                 //consume the dot
                 Advance();
             }
 
-            while(IsDigit(Peek()))
+            while(Char.IsDigit(Peek()))
             {
                 Advance();
             }
 
             AddToken(TokenType.Number, Double.Parse(CurrentLexeme()));
         }
-
-        private bool IsDigit(char c) =>
-            c >= '0' && c <= '9';
 
         private void AddToken(TokenType tokenType) =>
             AddToken(tokenType, null);
