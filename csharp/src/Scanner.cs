@@ -6,9 +6,9 @@ namespace lox
     public class Scanner
     {
         private readonly string source;
-        private readonly List<Token> tokens = new List<Token>();
+        private readonly List<Token> tokens = new();
 
-        private readonly Dictionary<String, TokenType> keywords = new Dictionary<string, TokenType>() {
+        private readonly Dictionary<String, TokenType> keywords = new() {
             {"and", TokenType.And},
             {"class", TokenType.Class},
             {"else", TokenType.Else},
@@ -207,7 +207,7 @@ namespace lox
                 Advance();
             }
 
-            if (keywords.TryGetValue(CurrentLexeme(), out TokenType tokenType))
+            if (keywords.TryGetValue(CurrentLexeme(), out var tokenType))
             {
                 AddToken(tokenType);
             }
