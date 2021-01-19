@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using lox.monads;
 
 namespace lox
 {
@@ -50,17 +51,18 @@ namespace lox
         private static void Run(string contents)
         {
             var scanner = new Scanner(contents);
-            var tokens =
-                scanner.ScanTokens()
-                .Where(r => r.IsErr() || r.Unwrap().TokenType != TokenType.WhiteSpace);
+            var tokens = scanner.ScanTokens();
 
             foreach(var token in tokens)
             {
-                if (token.IsOk()) {
-                    Console.WriteLine(token.Unwrap());
-                } else {
-                    var error = token.Error();
-                    Error(error.line, error.message);
+                switch (token.Inner)
+                {
+                    case Ok<Token> ok:
+                        Console.WriteLine(ok.value);
+                        break;
+                    case Err<LexError> err:
+                        Error(err.error.line, err.error.message);
+                        break;
                 }
             }
         }

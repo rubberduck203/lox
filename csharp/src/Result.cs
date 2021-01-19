@@ -1,43 +1,34 @@
 using System;
 
 namespace lox.monads {
-    public class Result<T,E> where E: class
+
+    public record Ok<T>(T value);
+    public record Err<E>(E error);
+
+    public class Result<T,E>
     {
-        private readonly T value;
-        private readonly E error;
+        public static Result<T,E> Ok(T value) => new Result<T, E>(new Ok<T>(value));
+        public static Result<T,E> Err(E err) => new Result<T, E>(new Err<E>(err));
 
-        public static Result<T,E> Ok(T value) => new Result<T, E>(value);
-        public static Result<T,E> Err(E error) => new Result<T, E>(error);
-
-        private Result(T value)
+        public object Inner { get; }
+        private Result(Ok<T> value)
         {
-            this.value = value;
+            Inner = value;
         }
 
-        private Result(E error)
+        private Result(Err<E> error)
         {
-            this.error = error;
+            Inner = error;
         }
 
-        public bool IsErr() => this.error != null;
-        public bool IsOk() => !IsErr();
+        public bool IsOk() => Inner is Ok<T>;
+        public bool IsErr() => !IsOk();
 
-        public T Unwrap()
-        {
-            if (IsErr())
-                throw new InvalidOperationException($"Cannot unwrap error: {this.error}");
-            return this.value;
-        }
-
-        public E Error()
-        {
-            if (IsOk())
-                throw new InvalidOperationException($"Result is Ok({this.value}");
-            return this.error;
-        }
-
-        public Result<TO, E> Bind<TO>(Func<T, Result<TO, E>> func) =>
-            IsOk() ? func(value) : new Result<TO, E>(this.error);
-        
+        public Result<TO, E> Bind<TO>(Func<T, Result<TO, E>> func) => 
+            Inner switch
+            {
+                Ok<T> ok => func(ok.value),
+                Err<E> err => new Result<TO, E>(err),
+            };
     }
 }
