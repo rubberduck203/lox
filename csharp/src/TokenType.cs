@@ -45,5 +45,8 @@ namespace lox
         While,
         EoF,
         EqualEqual,
+        Comment,
+        NewLine,
+        WhiteSpace,
     }
 }

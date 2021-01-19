@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
-
 namespace lox
 {
+    using Result = lox.monads.Result<Token, LexError>;
+
+    public record LexError(int line, string message);
+
     public class Scanner
     {
         private readonly string source;
-        private readonly List<Token> tokens = new();
 
         private readonly Dictionary<String, TokenType> keywords = new() {
             {"and", TokenType.And},
@@ -26,6 +28,7 @@ namespace lox
             {"while", TokenType.While}
         };
 
+        //TODO: Work on a stream instead of the whole string
         public Scanner(string source)
         {
             this.source = source;
@@ -35,88 +38,69 @@ namespace lox
         private int current = 0;
         private int line = 1;
 
-        public List<Token> ScanTokens() {
-            //TODO: this can probably be expressed as a foreach
-            // or linq expression
+        public IEnumerable<Token> ScanTokens() {
+            //TODO: this can probably be expressed as a foreach or linq expression
             while(!IsAtEnd())
             {
                 start = current;
-                ScanToken();
+                var tokenResult = ScanToken();
+
+                if (tokenResult.IsOk()) {
+                    yield return tokenResult.Unwrap();
+                } else {
+                    //TODO: return the maybe token and handle printing elsewhere
+                    var error = tokenResult.Error();
+                    Program.Error(error.line, error.message);
+                }
             }
 
-            this.tokens.Add(new Token(TokenType.EoF, String.Empty, null, line));
-            return tokens;
+            yield return new Token(TokenType.EoF, String.Empty, null, line);
         }
 
         private bool IsAtEnd() => 
             this.current >= this.source.Length;
-        private void ScanToken()
+
+        private Result ScanToken()
         {
             var c = Advance();
-            switch (c) 
+            return c switch
             {
                 //todo: return the tokentype and call AddToken once
                 /* single char lexemes */
-                case '(': AddToken(TokenType.LeftParen); break;
-                case ')': AddToken(TokenType.RightParen); break;
-                case '{': AddToken(TokenType.LeftBrace); break;
-                case '}': AddToken(TokenType.RightBrace); break;
-                case ',': AddToken(TokenType.Comma); break;
-                case '.': AddToken(TokenType.Dot); break;
-                case '-': AddToken(TokenType.Minus); break;
-                case '+': AddToken(TokenType.Plus); break;
-                case ';': AddToken(TokenType.Semicolon); break;
-                case '*': AddToken(TokenType.Star); break;
+                '(' => Token(TokenType.LeftParen),
+                ')' => Token(TokenType.RightParen),
+                '{' => Token(TokenType.LeftBrace),
+                '}' => Token(TokenType.RightBrace),
+                ',' => Token(TokenType.Comma),
+                '.' => Token(TokenType.Dot),
+                '-' => Token(TokenType.Minus),
+                '+' => Token(TokenType.Plus),
+                ';' => Token(TokenType.Semicolon),
+                '*' => Token(TokenType.Star),
                 /* two char lexemes */
-                case '!': AddToken(Match('=') ? TokenType.BangEqual : TokenType.Bang);
-                    break;
-                case '=': AddToken(Match('=') ? TokenType.EqualEqual : TokenType.Equal);
-                    break;
-                case '<': AddToken(Match('=') ? TokenType.LessEqual : TokenType.Less);
-                    break;
-                case '>': AddToken(Match('=') ? TokenType.GreaterEqual : TokenType.Greater);
-                    break;
-                case '/':
-                    // a slash could indicate division or the beginning of a comment
-                    if(Match('/'))
-                    {
-                        //comments go to the end of the line
-                        //a better version would store the comment as metadata to assist in automated refactrings, etc.
-                        //TODO: Environment.Newline is better, but is often multiple characters
-                        while(Peek() != '\n' && !IsAtEnd())
-                        {
-                            Advance();
-                        }
-                    }
-                    else
-                    {
-                        AddToken(TokenType.Slash);
-                    }
-                    break;
+                '!' => Token(Match('=') ? TokenType.BangEqual : TokenType.Bang),
+                '=' => Token(Match('=') ? TokenType.EqualEqual : TokenType.Equal),
+                '<' => Token(Match('=') ? TokenType.LessEqual : TokenType.Less),
+                '>' => Token(Match('=') ? TokenType.GreaterEqual : TokenType.Greater),
+                '/' => ScanDivisionOrComment(),
                 /* whitespace */
-                case ' ':
-                case '\r':
-                case '\t':
-                    /* ignore whitespace */
-                    break;
-                case '\n':
-                    this.line++;
-                    break;
-                case '"': ScanString(); break;
-                case char cur when Char.IsDigit(cur): ScanNumber(); break;
-                case char cur when Char.IsLetter(cur): ScanIdentifier(); break;
-                default:
-                    //TODO: this is totally gross, we should return a Result
-                    Program.Error(line, "Unexpected character.");
-                    break;
-            }
+                '\n' => ScanNewLine(),
+                char cur when Char.IsWhiteSpace(cur) => Token(TokenType.WhiteSpace),
+                /* strings, keywords, identifiers */
+                '"' => ScanString(),
+                char cur when Char.IsDigit(cur) => ScanNumber(),
+                char cur when Char.IsLetter(cur) => ScanIdentifier(),
+                /* error condition */
+                _ => Result.Err(new LexError(this.line, "Unexpected character."))
+            };
         }
 
         //consumes next character
         private char Advance()
         {
+            var c = this.source[this.current];
             this.current++;
-            return this.source[this.current - 1];
+            return c;
         }
 
         //consumes next character if it matches expected
@@ -152,7 +136,7 @@ namespace lox
             return this.source[current + 1];
         }
 
-        private void ScanString()
+        private Result ScanString()
         {
             while(Peek() != '"' && !IsAtEnd())
             {
@@ -165,18 +149,17 @@ namespace lox
 
             if(IsAtEnd()) 
             {
-                Program.Error(line, "Unterminated string");
-                return;
+                return Result.Err(new LexError(line, "Unterminated string."));
             }
             // consume the closing double quote.
             Advance();
 
             // slightly less efficient but more clear than directly indexing them out
             var value = CurrentLexeme().Trim('"');
-            AddToken(TokenType.String, value);
+            return Token(TokenType.String, value);
         }
 
-        private void ScanNumber()
+        private Result ScanNumber()
         {
             while(Char.IsDigit(Peek())) 
             {
@@ -194,10 +177,10 @@ namespace lox
                 Advance();
             }
 
-            AddToken(TokenType.Number, Double.Parse(CurrentLexeme()));
+            return Token(TokenType.Number, Double.Parse(CurrentLexeme()));
         }
 
-        private void ScanIdentifier()
+        private Result ScanIdentifier()
         {
             bool IsAlphaNumericOrUnderScore(char c) =>
                 Char.IsLetterOrDigit(c) || c == '_';
@@ -209,19 +192,43 @@ namespace lox
 
             if (keywords.TryGetValue(CurrentLexeme(), out var tokenType))
             {
-                AddToken(tokenType);
+                return Token(tokenType);
+            }
+
+            return Token(TokenType.Identifier);
+        }
+
+        private Result ScanDivisionOrComment()
+        {
+            // a slash could indicate division or the beginning of a comment
+            if(Match('/'))
+            {
+                //comments go to the end of the line
+                //a better version would store the comment as metadata to assist in automated refactrings, etc.
+                //TODO: Environment.Newline is better, but is often multiple characters
+                while(Peek() != '\n' && !IsAtEnd())
+                {
+                    Advance();
+                }
+                return Token(TokenType.Comment);
             }
             else
             {
-                AddToken(TokenType.Identifier);
+                return Token(TokenType.Slash);
             }
         }
 
-        private void AddToken(TokenType tokenType) =>
-            AddToken(tokenType, null);
+        private Result ScanNewLine()
+        {
+            this.line++;
+            return Token(TokenType.NewLine);
+        }
 
-        private void AddToken(TokenType tokenType, object literal) =>
-            this.tokens.Add(new Token(tokenType, CurrentLexeme(), literal, this.line));
+        private Result Token(TokenType tokenType) =>
+            Token(tokenType, null);
+
+        private Result Token(TokenType tokenType, object literal) =>
+            Result.Ok(new Token(tokenType, CurrentLexeme(), literal, this.line));
 
         /// Returns the current lexeme
         /// Note: Keep in mind that at any given point in time, the lexeme may be incomplete
