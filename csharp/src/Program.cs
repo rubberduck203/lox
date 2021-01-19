@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+
 namespace lox
 {
     class Program
@@ -48,11 +50,18 @@ namespace lox
         private static void Run(string contents)
         {
             var scanner = new Scanner(contents);
-            var tokens = scanner.ScanTokens();
+            var tokens =
+                scanner.ScanTokens()
+                .Where(r => r.IsErr() || r.Unwrap().TokenType != TokenType.WhiteSpace);
 
             foreach(var token in tokens)
             {
-                Console.WriteLine(token);
+                if (token.IsOk()) {
+                    Console.WriteLine(token.Unwrap());
+                } else {
+                    var error = token.Error();
+                    Error(error.line, error.message);
+                }
             }
         }
 

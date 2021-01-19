@@ -38,23 +38,14 @@ namespace lox
         private int current = 0;
         private int line = 1;
 
-        public IEnumerable<Token> ScanTokens() {
+        public IEnumerable<Result> ScanTokens() {
             //TODO: this can probably be expressed as a foreach or linq expression
             while(!IsAtEnd())
             {
                 start = current;
-                var tokenResult = ScanToken();
-
-                if (tokenResult.IsOk()) {
-                    yield return tokenResult.Unwrap();
-                } else {
-                    //TODO: return the maybe token and handle printing elsewhere
-                    var error = tokenResult.Error();
-                    Program.Error(error.line, error.message);
-                }
+                yield return ScanToken();
             }
-
-            yield return new Token(TokenType.EoF, String.Empty, null, line);
+            yield return Result.Ok(new Token(TokenType.EoF, String.Empty, null, line));
         }
 
         private bool IsAtEnd() => 
