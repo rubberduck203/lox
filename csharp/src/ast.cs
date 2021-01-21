@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace lox.ast {
 
-    //The visitor patter really just makes up for a lack of pattern matching.
+    //TODO: The visitor patter really just makes up for a lack of pattern matching.
     //In C# we can use pattern matching to do away with this I think.
     public interface Visitor<T>
     {

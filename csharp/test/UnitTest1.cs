@@ -1,6 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-namespace csharp
+namespace lox.tests
 {
     [TestClass]
     public class UnitTest1
