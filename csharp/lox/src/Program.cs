@@ -63,6 +63,13 @@ namespace lox
                     Error(error.line, error.message);
                 }
             }
+
+            //TODO: catch parse errors and report them
+            // if (ex.token == TokenType.Eof) {
+            //     Report(ex.token.line, "at end", message)
+            // } else {
+            //     Report(ex.token.line, $" at '{token.lexeme}'", message);
+            // }
         }
 
         public static void Error(int line, String message)
