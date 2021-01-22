@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using lox.tools;
 
 namespace lox
 {
@@ -51,8 +52,17 @@ namespace lox
         {
             var scanner = new Scanner(contents);
             var tokens =
-                scanner.ScanTokens()
-                .Where(r => r.IsErr() || r.Unwrap().TokenType != TokenType.WhiteSpace);
+                scanner
+                .ScanTokens()
+                .ToList() //it's not safe to scan more than once
+                .Where(r =>
+                    r.IsErr() 
+                    || (
+                        r.Unwrap().TokenType != TokenType.WhiteSpace
+                        && r.Unwrap().TokenType != TokenType.Comment
+                        && r.Unwrap().TokenType != TokenType.NewLine
+                    )
+                );
 
             foreach(var token in tokens)
             {
@@ -64,12 +74,26 @@ namespace lox
                 }
             }
 
-            //TODO: catch parse errors and report them
-            // if (ex.token == TokenType.Eof) {
-            //     Report(ex.token.line, "at end", message)
-            // } else {
-            //     Report(ex.token.line, $" at '{token.lexeme}'", message);
-            // }
+            if (tokens.Any(r => r.IsErr()))
+                return;
+
+            // We can just unwrap since we just checked
+            var parser = new Parser(tokens.Select(r => r.Unwrap()).ToList());
+            var exprResult = parser.Parse();
+
+            if (exprResult.IsErr())
+            {
+                var error = exprResult.Error();
+                if (error.token.TokenType == TokenType.EoF) 
+                {
+                    Report(error.token.Line, " at end", error.message);
+                } else {
+                    Report(error.token.Line, $" at '{error.token.Lexeme}'", error.message);
+                }
+                return;
+            }
+
+            Console.WriteLine(new AstPrinter().Print(exprResult.Unwrap()));
         }
 
         public static void Error(int line, String message)

@@ -3,83 +3,80 @@ using System.Linq;
 using System.Collections.Generic;
 
 using lox.ast;
+using lox.monads;
 
 namespace lox
 {
+    using Result = lox.monads.Result<Expr, ParseError>;
+    public record ParseError(Token token, string message);
     public class Parser
     {
         private readonly List<Token> tokens;
         private int current;
 
-        Parser(List<Token> tokens)
+        public Parser(List<Token> tokens)
         {
             this.tokens = tokens;
         }
 
-        private Expr Expression() => Equality();
-        private Expr Equality()
+        public Result Parse() => Expression();
+
+        private Result Expression() => Equality();
+        private Result Equality()
         {
             /* 
              * equality → comparison ( ( "!=" | "==" ) comparison )* ; 
              */
-            var expr = Comparison();
-            while(Match(TokenType.BangEqual, TokenType.EqualEqual))
-            {
-                var @operator = Previous();
-                var right = Comparison();
-                expr = new BinaryExpr(expr, @operator, right);
-            }
-
-            return expr;
+            return ParseBinaryOperation(Comparison, TokenType.BangEqual, TokenType.EqualEqual);
         }
 
-        private Expr Comparison()
+        private Result Comparison()
         {
             /*
              * comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
              */
-
-            var expr = Term();
-            while(Match(TokenType.Greater, TokenType.GreaterEqual, TokenType.Less, TokenType.LessEqual))
-            {
-                var @operator = Previous();
-                var right = Term();
-                expr = new BinaryExpr(expr, @operator, right);
-            }
-            return expr;
+            return ParseBinaryOperation(Term, TokenType.Greater, TokenType.GreaterEqual, TokenType.Less, TokenType.LessEqual);
         }
 
-        private Expr Term()
+        private Result Term()
         {
             /*
              * term → factor ( ( "-" | "+" ) factor )* ;
              */
-            var expr = Factor();
-            while(Match(TokenType.Minus, TokenType.Plus))
-            {
-                var @operator = Previous();
-                var right = Factor();
-                expr = new BinaryExpr(expr, @operator, right);
-            }
-            return expr;
+            return ParseBinaryOperation(Factor, TokenType.Minus, TokenType.Plus);
         }
 
-        private Expr Factor()
+        private Result Factor()
         {
             /*
              * factor → unary ( ( "/" | "*" ) unary )* ;
              */
-            var expr = Unary();
-            while(Match(TokenType.Slash, TokenType.Star))
-            {
-                var @operator = Previous();
-                var right = Unary();
-                expr = new BinaryExpr(expr, @operator, right);
-            }
-            return expr;
+            return ParseBinaryOperation(Unary, TokenType.Slash, TokenType.Star);
         }
 
-        private Expr Unary()
+        private Result ParseBinaryOperation(Func<Result> next, params TokenType[] tokenTypes)
+        {
+            /*
+             * current -> next ( ( tokenA | tokenB | etc. ) next )* ;
+             */
+            return
+                next()
+                .Bind(expr => {
+                    var result = Result.Ok(expr);
+                    while(Match(tokenTypes))
+                    {
+                        var @operator = PreviousToken();
+                        result = 
+                            next()
+                            .Bind(right => 
+                                Result.Ok(new BinaryExpr(expr, @operator, right))
+                            );
+                    }
+                    return result;
+                });
+        }
+
+        private Result Unary()
         {
             /*
              * unary → ( "!" | "-" ) unary
@@ -87,43 +84,48 @@ namespace lox
              */
             if(Match(TokenType.Bang, TokenType.Minus))
             {
-                var @operator = Previous();
-                var right = Unary();
-                return new UnaryExpr(@operator, right);
+                var @operator = PreviousToken();
+                return 
+                    Unary()
+                    .Bind(right => Result.Ok(new UnaryExpr(@operator, right)));
             }
             return Primary();
         }
 
-        private Expr Primary()
+        private Result Primary()
         {
             /*
              * primary → NUMBER | STRING | "true" | "false" | "nil"
              *         | "(" expression ")" ;
              */
             if(Match(TokenType.False))
-                return new LiteralExpr(false);
+                return Result.Ok(new LiteralExpr(false));
             if(Match(TokenType.True))
-                return new LiteralExpr(true);
+                return Result.Ok(new LiteralExpr(true));
             if(Match(TokenType.Nil))
-                return new LiteralExpr(null);
+                return Result.Ok(new LiteralExpr(null));
             if(Match(TokenType.Number, TokenType.String))
-                return new LiteralExpr(Previous().Literal);
+                return Result.Ok(new LiteralExpr(PreviousToken().Literal));
             if(Match(TokenType.LeftParen))
             {
-                var expr = Expression();
-                Consume(TokenType.RightParen, "Expect ')' after expression.");
-                return new GroupingExpr(expr);
+                Expression()
+                .Bind(expr => {
+                    //consume returns a different result type
+                    return
+                        Consume(TokenType.RightParen, "Expected ')' after expression.")
+                        .Bind(_token => Result.Ok(new GroupingExpr(expr)));
+                });
             }
 
-            throw new ParseError("Unexpectedly failed to parse.");
+            return Result.Err(new ParseError(Peek(), "Expected expression."));
         }
 
-        private Token Consume(TokenType tokenType, String message)
+        private Result<Token, ParseError> Consume(TokenType tokenType, String message)
         {
             if (Check(tokenType))
-                return Advance();
+                return Result<Token,ParseError>.Ok(Advance());
             
-            throw new ParseError(Peek(), message);
+            return Result<Token, ParseError>.Err(new ParseError(Peek(), message));
         }
 
         private void Synchronize()
@@ -132,7 +134,7 @@ namespace lox
             do
             {
                 Advance();
-                if(Previous().TokenType == TokenType.Semicolon)
+                if(PreviousToken().TokenType == TokenType.Semicolon)
                     return;
                 switch(Peek().TokenType)
                 {
@@ -178,7 +180,7 @@ namespace lox
         private Token Peek() =>
             this.tokens[this.current];
 
-        private Token Previous() =>
+        private Token PreviousToken() =>
             this.tokens[this.current - 1];
     }
 }

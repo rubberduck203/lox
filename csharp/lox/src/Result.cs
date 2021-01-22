@@ -39,5 +39,6 @@ namespace lox.monads {
         public Result<TO, E> Bind<TO>(Func<T, Result<TO, E>> func) =>
             IsOk() ? func(value) : new Result<TO, E>(this.error);
         
+        //TODO: I really need a MapError or something
     }
 }
