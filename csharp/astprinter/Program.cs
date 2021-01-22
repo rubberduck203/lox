@@ -15,23 +15,30 @@ namespace lox.astprinter
                     new LiteralExpr(123)
                 ),
                 new Token(TokenType.Star, "*", null, 1),
-                new GroupingExpr(new LiteralExpr(45.67))
+                new GroupingExpr(
+                    new BinaryExpr(
+                        new LiteralExpr(45.67),
+                        new Token(TokenType.Plus, "+", null, 1),
+                        new LiteralExpr(1)
+                    )
+                )
             );
 
            Console.WriteLine(new AstPrinter().Print(expr));
         }
     }
-
-    //TODO: It would be super cool to have a graphviz generator
+    ///<Summary>Prints a graphviz dot representation of the AST</Summary>
     public class AstPrinter : Visitor<string>
     {
         public string Print(Expr expr) =>
-            expr.Accept(this);
+            $"digraph {{{Environment.NewLine} {expr.Accept(this)}{Environment.NewLine}}}";
 
-        private string Paranthesize(string name, Expr left, Expr right) =>
-            $"({name} {left.Accept(this)} {right.Accept(this)})";
-        private string Paranthesize(string name, Expr expr) =>
-            $"({name} {expr.Accept(this)})";
+        public string Format(string nodeName, Expr expr) =>
+            $"\"{nodeName}\" -> {expr.Accept(this)}";
+
+        public string Format(string nodeName, Expr left, Expr right) =>
+$@"""{nodeName}"" -> {left.Accept(this)}
+ ""{nodeName}"" -> {right.Accept(this)}";
 
         public string VisitAssignExpr(AssignExpr expr)
         {
@@ -39,7 +46,7 @@ namespace lox.astprinter
         }
 
         public string VisitBinaryExpr(BinaryExpr expr) =>
-            Paranthesize(expr.@operator.Lexeme, expr.left, expr.right);
+            Format(expr.@operator.Lexeme, expr.left, expr.right);
 
         public string VisitCallExpr(CallExpr expr)
         {
@@ -52,7 +59,7 @@ namespace lox.astprinter
         }
 
         public string VisitGroupingExpr(GroupingExpr expr) =>
-            Paranthesize("group", expr.expr);
+            Format("group", expr.expr);
 
         public string VisitLiteralExpr(LiteralExpr expr) =>
             expr.value?.ToString() ?? "nil"; 
@@ -78,7 +85,7 @@ namespace lox.astprinter
         }
 
         public string VisitUnaryExpr(UnaryExpr expr) =>
-            Paranthesize(expr.@operator.Lexeme, expr.right);
+            Format(expr.@operator.Lexeme, expr.right);
 
         public string VisitVariableExpr(VariableExpr expr)
         {
