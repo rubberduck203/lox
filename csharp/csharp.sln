@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "lox", "src\lox.csproj", "{5C153EB3-1231-4D29-B508-5AF489189D47}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "lox", "lox\src\lox.csproj", "{5C153EB3-1231-4D29-B508-5AF489189D47}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "lox.tests", "test\lox.tests.csproj", "{BE356C6B-5B78-4435-B370-B09749F5D363}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "lox.tests", "lox\test\lox.tests.csproj", "{BE356C6B-5B78-4435-B370-B09749F5D363}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "astprinter", "astprinter\astprinter.csproj", "{11462DC0-8801-47EF-BE09-C58008B2AB6B}"
 EndProject

@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../src/lox.csproj"/>
+    <ProjectReference Include="../lox/src/lox.csproj"/>
   </ItemGroup>
 
 </Project>
