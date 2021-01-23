@@ -196,6 +196,7 @@ namespace lox.tests
             Assert.AreEqual(x,y);
         }
 
+        [TestMethod]
         public void OkDoesNotEqualDifferentOk()
         {
             var x = IntResult.Ok(22);

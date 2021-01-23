@@ -1,61 +1,80 @@
 using System;
 
 namespace lox.monads {
+
+    public record Ok<T>(T value)
+    {
+        public override string ToString() =>
+            $"Ok({value})";
+    }
+    public record Err<E>(E error)
+    {
+        public override string ToString() =>
+            $"Err({error})";
+    }
+
     public class Result<T,E> : IEquatable<Result<T,E>> where E: class
     {
-        private readonly T value;
-        private readonly E error;
+        private readonly object inner;
 
-        public static Result<T,E> Ok(T value) => new Result<T, E>(value);
-        public static Result<T,E> Err(E error) => new Result<T, E>(error);
+        public static Result<T,E> Ok(T value) => new Result<T, E>(new Ok<T>(value));
+        public static Result<T,E> Err(E error) => new Result<T, E>(new Err<E>(error));
 
-        private Result(T value)
+        private Result(Ok<T> value)
         {
-            this.value = value;
+            this.inner = value;
         }
 
-        private Result(E error)
+        private Result(Err<E> error)
         {
-            this.error = error;
+            this.inner = error;
         }
 
-        public bool IsErr() => this.error != null;
-        public bool IsOk() => !IsErr();
+        public bool IsErr() => !IsOk();
+        public bool IsOk() => this.inner is Ok<T>;
 
-        public T Unwrap()
-        {
-            if (IsErr())
-                throw new InvalidOperationException($"Cannot unwrap error: {this.error}");
-            return this.value;
-        }
+        public T Unwrap() =>
+            this.inner switch
+            {
+                Ok<T>(var v) => v,
+                var err => throw new InvalidOperationException($"Cannot unwrap error: {err}")
+            };
 
-        public E Error()
-        {
-            if (IsOk())
-                throw new InvalidOperationException($"Result is Ok({this.value}");
-            return this.error;
-        }
+        public E Error() =>
+            this.inner switch
+            {
+                Err<E>(var e) => e,
+                var ok => throw new InvalidOperationException($"Result is {ok}")
+            };
 
+        /* By construction and the type system, we know the matches do cover all cases */
+        #pragma warning disable CS8509
         public Result<TO, E> Bind<TO>(Func<T, Result<TO, E>> func) =>
-            IsOk() ? func(value) : new Result<TO, E>(this.error);
+            this.inner switch
+            {
+                Ok<T> ok => func(ok.value),
+                Err<E> err => new Result<TO, E>(err),
+            };
 
         //fmap :: (a -> b) -> F a -> F b
         public Result<U, E> Map<U>(Func<T, U> selector) =>
             Bind(v => Result<U, E>.Ok(selector(v)));
-        public Result<T, U> MapErr<U>(Func<E,U> selector) where U : class
-        {
-            if (this.IsOk())
-                return Result<T,U>.Ok(this.value);
+        public Result<T, U> MapErr<U>(Func<E,U> selector)
+        where U : class =>
+            this.inner switch
+            {
+                Ok<T>(var v) => Result<T,U>.Ok(v),
+                Err<E>(var err) => Result<T,U>.Err(selector(err)),
+            };
 
-            return new Result<T, U>(selector(this.error));
-        }
-
-        public Result<U,V> MapOrElse<U,V>(Func<T,U> okSelector, Func<E,V> errSelector) where V: class
-        {
-            if (this.IsOk())
-                return Result<U,V>.Ok(okSelector(this.value));
-            return Result<U,V>.Err(errSelector(this.error));
-        }
+        public Result<U,V> MapOrElse<U,V>(Func<T,U> okSelector, Func<E,V> errSelector)
+        where V: class =>
+            this.inner switch
+            {
+                Ok<T>(var v) => Result<U,V>.Ok(okSelector(v)),
+                Err<E>(var err) => Result<U,V>.Err(errSelector(err)),
+            };
+        #pragma warning restore CS8509
 
         public Result<U, E> Select<U>(Func<T, U> selector) =>
             Map(selector);
@@ -66,17 +85,15 @@ namespace lox.monads {
         ) => Bind(x => k(x)
             .Bind<V>(y => Result<V,E>.Ok(s(x, y))));
 
-        public bool Equals(Result<T, E> other)
-        {
-            if (this.IsOk() && other.IsErr())
-                return false;
-            if (this.IsErr() && other.IsOk())
-                return false;
-            if (this.IsErr() && other.IsErr())
-                return this.error.Equals(other.error);
-            //if (this.IsOk() && other.IsOk())
-            return this.value.Equals(other.value);
-        }
+        public bool Equals(Result<T, E> other) =>
+            (this.inner, other.inner) switch
+            {
+                (Ok<T>,Err<E>) => false,
+                (Err<E>,Ok<T>) => false,
+                (Err<E>(var a),Err<E>(var b)) => a.Equals(b),
+                (Ok<T>(var a), Ok<T>(var b)) => a.Equals(b),
+                (_,_) => false //should never happen, but equals shoudn't ever throw
+            };
 
         public override bool Equals(object obj)
         {
@@ -86,18 +103,10 @@ namespace lox.monads {
             return false;
         }
 
-        public override int GetHashCode()
-        {
-            if (IsOk())
-                return value.GetHashCode();
-            return error.GetHashCode();
-        }
+        public override int GetHashCode() =>
+            this.inner.GetHashCode();
 
-        public override string ToString()
-        {
-            if (IsOk())
-                return $"Ok({value})";
-            return $"Err({error})";
-        }
+        public override string ToString() =>
+            this.inner.ToString();
     }
 }
