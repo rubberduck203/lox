@@ -1,5 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Linq;
 using lox.monads;
 
 namespace lox.tests
@@ -93,6 +94,36 @@ namespace lox.tests
                 (x) => f(x).Bind(g);
 
             Assert.AreEqual(left, right(1));
+        }
+
+        [TestMethod]
+        public void ComprehensionsWork()
+        {
+            var result =
+                from x in IntResult.Ok(2)
+                select x + 1;
+
+            Assert.AreEqual(IntResult.Ok(3), result);
+
+            var error =
+                from x in IntResult.Err("boom")
+                select x + 1;
+
+            Assert.AreEqual(IntResult.Err("boom"), error);
+
+            var error2 =
+                from x in IntResult.Ok(3)
+                from y in IntResult.Err("boom")
+                select x + y;
+            
+            Assert.AreEqual(IntResult.Err("boom"), error2);
+
+            var result2 =
+                from x in IntResult.Ok(3)
+                from y in IntResult.Ok(4)
+                select x + y;
+
+            Assert.AreEqual(result2, IntResult.Ok(7));
         }
 
         record SomeError(string msg);

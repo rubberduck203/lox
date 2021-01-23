@@ -57,6 +57,15 @@ namespace lox.monads {
             return Result<U,V>.Err(errSelector(this.error));
         }
 
+        public Result<U, E> Select<U>(Func<T, U> selector) =>
+            Map(selector);
+
+        public Result<V, E> SelectMany<U, V>(
+            Func<T, Result<U,E>> k,
+            Func<T,U,V> s
+        ) => Bind(x => k(x)
+            .Bind<V>(y => Result<V,E>.Ok(s(x, y))));
+
         public bool Equals(Result<T, E> other)
         {
             if (this.IsOk() && other.IsErr())
