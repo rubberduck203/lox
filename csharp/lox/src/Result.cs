@@ -52,21 +52,20 @@ namespace lox.monads {
         public Result<TO, E> Bind<TO>(Func<T, Result<TO, E>> func) =>
             this.inner switch
             {
-                Ok<T> ok => func(ok.value),
+                Ok<T>(var v) => func(v),
                 Err<E> err => new Result<TO, E>(err),
             };
+        #pragma warning restore CS8509
 
         //fmap :: (a -> b) -> F a -> F b
-        public Result<U, E> Map<U>(Func<T, U> selector) =>
-            Bind(v => Result<U, E>.Ok(selector(v)));
-        public Result<T, U> MapErr<U>(Func<E,U> selector)
+        public Result<U, E> Map<U>(Func<T, U> func) =>
+            Bind(v => Result<U, E>.Ok(func(v)));
+        public Result<T, U> MapErr<U>(Func<E,U> func)
         where U : class =>
-            this.inner switch
-            {
-                Ok<T>(var v) => Result<T,U>.Ok(v),
-                Err<E>(var err) => Result<T,U>.Err(selector(err)),
-            };
+            MapOrElse(v => v, func);
 
+        /* By construction and the type system, we know the matches do cover all cases */
+        #pragma warning disable CS8509
         public Result<U,V> MapOrElse<U,V>(Func<T,U> okSelector, Func<E,V> errSelector)
         where V: class =>
             this.inner switch
