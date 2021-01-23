@@ -11,6 +11,37 @@ namespace lox.tests
     public class ResultSpec
     {
         [TestMethod]
+        public void IsAFunctor()
+        {
+            var a = IntResult.Ok(2);
+            var b = IntResult.Ok(3);
+
+            var actual = a.Map((a) => a + 3);
+            Assert.AreEqual(IntResult.Ok(5), actual);
+        }
+
+        [TestMethod]
+        public void SatisfiesFunctorIdentityLaw()
+        {
+            int identity(int a) => a;
+            var result = IntResult.Ok(23);
+            Assert.AreEqual(result, result.Map(identity));
+        }
+
+        [TestMethod]
+        public void SatisfiesFunctorCompositionLaw()
+        {
+            int add1(int a) => a;
+            int mult2(int a) => a;
+
+            var result = IntResult.Ok(3);
+            Assert.AreEqual(
+                result.Map(x => add1(mult2(x))),
+                result.Map(add1).Map(mult2)
+            );
+        }
+
+        [TestMethod]
         public void BindMapsFromOneResultTypeToAnother()
         {
             var result = IntResult.Ok(21);
@@ -32,7 +63,7 @@ namespace lox.tests
         }
 
         [TestMethod]
-        public void SatisfiesLeftidentityLaw()
+        public void SatisfiesMonadLeftidentityLaw()
         {
             IntResult add1(int a) => IntResult.Ok(a + 1);
             var a = 1;
@@ -41,7 +72,7 @@ namespace lox.tests
         }
 
         [TestMethod]
-        public void SatisfiesRightIdentityLaw()
+        public void SatisfiesMonadRightIdentityLaw()
         {
             var m = IntResult.Ok(2);
             // m >>= return === m
@@ -49,7 +80,7 @@ namespace lox.tests
         }
 
         [TestMethod]
-        public void SatisfiesAssociativityLaw()
+        public void SatisfiesMonadAssociativityLaw()
         {
             // (m >>= f) >>= g === m >>= (\x -> f x >>= g)
             var m = IntResult.Ok(1);
@@ -62,6 +93,29 @@ namespace lox.tests
                 (x) => f(x).Bind(g);
 
             Assert.AreEqual(left, right(1));
+        }
+
+        record SomeError(string msg);
+        [TestMethod]
+        public void MapErrMapsToANewErrorType()
+        {
+            var expected =
+                Result<int,SomeError>.Err(new SomeError("boom"));
+
+            var actual =
+                IntResult.Err("boom")
+                .MapErr(e => new SomeError(e));
+            Assert.AreEqual(expected, actual);
+        }
+
+        [TestMethod]
+        public void MapErrPassesThroughOks()
+        {
+            var actual =
+                IntResult.Ok(2)
+                .MapErr(e => new SomeError(e));
+
+            Assert.AreEqual(Result<int, SomeError>.Ok(2), actual);
         }
 
         [TestMethod]

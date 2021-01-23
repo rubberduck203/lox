@@ -39,8 +39,20 @@ namespace lox.monads {
         public Result<TO, E> Bind<TO>(Func<T, Result<TO, E>> func) =>
             IsOk() ? func(value) : new Result<TO, E>(this.error);
 
+        //fmap :: (a -> b) -> F a -> F b
+        public Result<U, E> Map<U>(Func<T, U> selector) =>
+            Bind(v => Result<U, E>.Ok(selector(v)));
+
         //TODO: I really need a MapError or something
-        
+        public Result<T, U> MapErr<U>(Func<E,U> selector) where U : class
+        {
+            if (this.IsOk())
+                return Result<T,U>.Ok(this.value);
+
+            return new Result<T, U>(selector(this.error));
+        }
+
+
         public bool Equals(Result<T, E> other)
         {
             if (this.IsOk() && other.IsErr())
