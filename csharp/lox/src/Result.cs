@@ -94,13 +94,10 @@ namespace lox.monads {
                 (_,_) => false //should never happen, but equals shoudn't ever throw
             };
 
-        public override bool Equals(object obj)
-        {
-            if (obj is Result<T,E> other)
-                return this.Equals(other);
-
-            return false;
-        }
+        public override bool Equals(object obj) =>
+            obj is Result<T,E> other
+            ? this.Equals(other)
+            : false;
 
         public override int GetHashCode() =>
             this.inner.GetHashCode();
