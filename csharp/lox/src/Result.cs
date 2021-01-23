@@ -49,6 +49,7 @@ namespace lox.monads {
 
         /* By construction and the type system, we know the matches do cover all cases */
         #pragma warning disable CS8509
+        // M a -> (a -> M b) -> M b
         public Result<TO, E> Bind<TO>(Func<T, Result<TO, E>> func) =>
             this.inner switch
             {
@@ -57,15 +58,16 @@ namespace lox.monads {
             };
         #pragma warning restore CS8509
 
-        //fmap :: (a -> b) -> F a -> F b
-        public Result<U, E> Map<U>(Func<T, U> func) =>
-            Bind(v => Result<U, E>.Ok(func(v)));
+        private A Identity<A>(A result) => result;
+
+        // M a e -> (e -> e') -> M a e'
         public Result<T, U> MapErr<U>(Func<E,U> func)
         where U : class =>
-            MapOrElse(v => v, func);
+            MapOrElse(Identity, func);
 
         /* By construction and the type system, we know the matches do cover all cases */
         #pragma warning disable CS8509
+        // M a e -> (a -> b) -> (e -> e') -> M b e'
         public Result<U,V> MapOrElse<U,V>(Func<T,U> okSelector, Func<E,V> errSelector)
         where V: class =>
             this.inner switch
@@ -74,15 +76,6 @@ namespace lox.monads {
                 Err<E>(var err) => Result<U,V>.Err(errSelector(err)),
             };
         #pragma warning restore CS8509
-
-        public Result<U, E> Select<U>(Func<T, U> selector) =>
-            Map(selector);
-
-        public Result<V, E> SelectMany<U, V>(
-            Func<T, Result<U,E>> k,
-            Func<T,U,V> s
-        ) => Bind(x => k(x)
-            .Bind(y => Result<V,E>.Ok(s(x, y))));
 
         public bool Equals(Result<T, E> other) =>
             (this.inner, other.inner) switch
@@ -104,5 +97,31 @@ namespace lox.monads {
 
         public override string ToString() =>
             this.inner.ToString();
+    }
+
+    public static class ResultExtensions
+    {
+            // F a e -> (a -> b) -> F b e
+            public static Result<U, E> Map<T,E,U>(this Result<T,E> result, Func<T, U> func)
+            where E: class =>
+                result.Bind(v => Result<U, E>.Ok(func(v)));
+
+            // Alias for Map that enables linq query syntax for comprehensions
+            // F a e -> (a -> b) -> F b e
+            public static Result<U, E> Select<T,E,U>(this Result<T,E> result, Func<T, U> selector)
+            where E: class =>
+                result.Map(selector);
+
+            // (a -> M b) -> (a -> b -> c) -> M c
+            public static Result<V, E> SelectMany<T, E, U, V>(
+                this Result<T,E> result,
+                Func<T, Result<U,E>> convert,
+                Func<T,U,V> select
+            ) where E: class =>
+                result
+                .Bind(x =>
+                        convert(x)
+                        .Bind(y => Result<V,E>.Ok(select(x, y)))
+                );
     }
 }
