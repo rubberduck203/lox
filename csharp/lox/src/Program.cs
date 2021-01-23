@@ -79,19 +79,21 @@ namespace lox
             var parser = new Parser(tokens.ToList());
             var exprResult = parser.Parse();
 
-            if (exprResult.IsErr())
-            {
-                var error = exprResult.Error();
-                if (error.token.TokenType == TokenType.EoF) 
-                {
-                    Report(error.token.Line, " at end", error.message);
-                } else {
-                    Report(error.token.Line, $" at '{error.token.Lexeme}'", error.message);
+            var _ = exprResult.MapOrElse(
+                expr => {
+                    Console.WriteLine(new AstPrinter().Print(expr));
+                    return expr;
+                },
+                error => {
+                    if (error.token.TokenType == TokenType.EoF) 
+                    {
+                        Report(error.token.Line, " at end", error.message);
+                    } else {
+                        Report(error.token.Line, $" at '{error.token.Lexeme}'", error.message);
+                    }
+                    return error;
                 }
-                return;
-            }
-
-            Console.WriteLine(new AstPrinter().Print(exprResult.Unwrap()));
+            );
         }
 
         public static void Error(int line, String message)

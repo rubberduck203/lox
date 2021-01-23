@@ -119,6 +119,38 @@ namespace lox.tests
         }
 
         [TestMethod]
+        public void MapOrElseMapsOks()
+        {
+            var expected =
+                Result<int, SomeError>.Ok(4);
+
+            var actual =
+                IntResult.Ok(2)
+                .MapOrElse(
+                    x => x * 2,
+                    e => new SomeError(e)
+                );
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [TestMethod]
+        public void MapOrElseMapsErrors()
+        {
+            var expected =
+                Result<int,SomeError>.Err(new SomeError("boom"));
+
+            var actual =
+                IntResult.Err("boom")
+                .MapOrElse(
+                    x => x * 2,
+                    e => new SomeError(e)
+                );
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [TestMethod]
         public void EqualsItself()
         {
             var result = IntResult.Ok(22);

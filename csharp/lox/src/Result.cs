@@ -42,8 +42,6 @@ namespace lox.monads {
         //fmap :: (a -> b) -> F a -> F b
         public Result<U, E> Map<U>(Func<T, U> selector) =>
             Bind(v => Result<U, E>.Ok(selector(v)));
-
-        //TODO: I really need a MapError or something
         public Result<T, U> MapErr<U>(Func<E,U> selector) where U : class
         {
             if (this.IsOk())
@@ -52,6 +50,12 @@ namespace lox.monads {
             return new Result<T, U>(selector(this.error));
         }
 
+        public Result<U,V> MapOrElse<U,V>(Func<T,U> okSelector, Func<E,V> errSelector) where V: class
+        {
+            if (this.IsOk())
+                return Result<U,V>.Ok(okSelector(this.value));
+            return Result<U,V>.Err(errSelector(this.error));
+        }
 
         public bool Equals(Result<T, E> other)
         {
