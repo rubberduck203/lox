@@ -82,7 +82,7 @@ namespace lox.monads {
             Func<T, Result<U,E>> k,
             Func<T,U,V> s
         ) => Bind(x => k(x)
-            .Bind<V>(y => Result<V,E>.Ok(s(x, y))));
+            .Bind(y => Result<V,E>.Ok(s(x, y))));
 
         public bool Equals(Result<T, E> other) =>
             (this.inner, other.inner) switch
