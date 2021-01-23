@@ -51,34 +51,32 @@ namespace lox
         private static void Run(string contents)
         {
             var scanner = new Scanner(contents);
-            var tokens =
-                scanner
-                .ScanTokens()
-                .ToList() //it's not safe to scan more than once
-                .Where(r =>
-                    r.IsErr() 
-                    || (
-                        r.Unwrap().TokenType != TokenType.WhiteSpace
-                        && r.Unwrap().TokenType != TokenType.Comment
-                        && r.Unwrap().TokenType != TokenType.NewLine
-                    )
-                );
 
-            foreach(var token in tokens)
+            var tokenResults = scanner.ScanTokens().ToList(); //it's not safe to scan more than once
+
+            if (tokenResults.Any(r => r.IsErr()))
             {
-                if (token.IsOk()) {
-                    Console.WriteLine(token.Unwrap());
-                } else {
-                    var error = token.Error();
+                var errors =
+                    tokenResults
+                    .Where(r => r.IsErr())
+                    .Select(r => r.Error());
+                foreach(var error in errors)
+                {
                     Error(error.line, error.message);
                 }
+                return;
             }
 
-            if (tokens.Any(r => r.IsErr()))
-                return;
-
-            // We can just unwrap since we just checked
-            var parser = new Parser(tokens.Select(r => r.Unwrap()).ToList());
+            // We can just unwrap since we just checked for errors
+            var tokens =
+                tokenResults
+                .Select(r => r.Unwrap())
+                .Where(t =>
+                    t.TokenType != TokenType.WhiteSpace
+                    && t.TokenType != TokenType.Comment
+                    && t.TokenType != TokenType.NewLine
+                );
+            var parser = new Parser(tokens.ToList());
             var exprResult = parser.Parse();
 
             if (exprResult.IsErr())
