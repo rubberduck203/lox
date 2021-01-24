@@ -8,7 +8,8 @@ namespace rubberduck.monads.tests
     [TestClass]
     public class MaybeSpec : MonadSpec
     {
-        protected override Monad<int> MonadFixture { get;} = Maybe<int>.Some(12);
+        protected override int InnerValue => 12;
+        protected override Monad<int> MonadFixture => Maybe<int>.Some(InnerValue);
         protected override Functor<int> FunctorFixture {get => MonadFixture;}
 
 #region Equals

@@ -5,6 +5,10 @@ namespace rubberduck.monads.tests
 {
     public abstract class MonadSpec : FunctorSpec
     {
+        ///<summary>
+        ///Must return the MonadFixture's inner value.
+        ///</summary>
+        protected abstract int InnerValue {get;}
         protected abstract Monad<int> MonadFixture {get;}
 
         [TestMethod]
@@ -15,8 +19,7 @@ namespace rubberduck.monads.tests
                 from y in MonadFixture
                 select x + y;
             
-            //TODO: hardcoded fixture value of 12
-            Assert.AreEqual(MonadFixture.Unit(24), m);
+            Assert.AreEqual(MonadFixture.Unit(InnerValue * 2), m);
         }
 
         [TestMethod]
@@ -49,8 +52,7 @@ namespace rubberduck.monads.tests
             Func<int, Monad<int>> right =
                 (x) => f(x).SelectMany(g);
 
-            //TODO: currently hard coded so MonadFixture must have a value of 12
-            Assert.AreEqual(left, right(12));
+            Assert.AreEqual(left, right(InnerValue));
         }
     }
 }
