@@ -6,17 +6,10 @@ using rubberduck.monads;
 namespace rubberduck.monads.tests
 {
     [TestClass]
-    public class MaybeSpec
+    public class MaybeSpec : MonadSpec
     {
-        [TestMethod]
-        public void LinqComprehensionsWork()
-        {            
-            var maybeInt =
-                from x in Maybe<int>.Some(32)
-                from y in Maybe<int>.None()
-                select x + y;
-            Assert.AreEqual(Maybe<int>.None(), maybeInt);
-        }
+        protected override Monad<int> MonadFixture { get;} = Maybe<int>.Some(12);
+        protected override Functor<int> FunctorFixture {get => MonadFixture;}
 
 #region Equals
         [TestMethod]
