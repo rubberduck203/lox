@@ -19,8 +19,8 @@ namespace lox
         }
 
         public Result VisitBinaryExpr(BinaryExpr expr) =>
-            from left in Evaluate(expr.left)
-            from right in Evaluate(expr.right)
+            from left in Eval(expr.left)
+            from right in Eval(expr.right)
             from result in EvalBinaryExpr(expr.@operator, left, right)
             select result;
 
@@ -62,7 +62,7 @@ namespace lox
         }
 
         public Result VisitGroupingExpr(GroupingExpr expr) =>
-            Evaluate(expr.expr);
+            Eval(expr.expr);
 
         public Result VisitLiteralExpr(LiteralExpr expr) =>
             Result.Ok(expr.value);
@@ -88,7 +88,7 @@ namespace lox
         }
 
         public Result VisitUnaryExpr(UnaryExpr expr) =>
-            from right in Evaluate(expr.right)
+            from right in Eval(expr.right)
             from result in EvalUnary(expr.@operator, right) 
             select result;
 
@@ -108,7 +108,7 @@ namespace lox
             throw new NotImplementedException();
         }
 
-        private Result Evaluate(Expr expr) =>
+        private Result Eval(Expr expr) =>
             expr.Accept(this);
 
         private bool IsTruthy(object value) =>
