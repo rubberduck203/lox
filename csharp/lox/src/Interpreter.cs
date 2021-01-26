@@ -43,7 +43,7 @@ namespace lox
             };
         }
 
-        Func<Func<Double, Double, object>,Result> EvalNumericOperation(Token token, object left, object right)
+        private Func<Func<Double, Double, object>,Result> EvalNumericOperation(Token token, object left, object right)
         {
             return f => (left, right) switch {
                 (Double l, Double r) => Result.Ok(f(l,r)),
