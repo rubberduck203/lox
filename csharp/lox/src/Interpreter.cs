@@ -12,6 +12,7 @@ namespace lox
 
     public class Interpreter : Visitor<Result>
     {
+        public Result Interpert(Expr expr) => Eval(expr);
 
         public Result VisitAssignExpr(AssignExpr expr)
         {

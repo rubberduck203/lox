@@ -9,6 +9,8 @@ namespace lox
     {
         //TODO: I don't like how the author is using global static state.
         private static bool HadError = false;
+        private static bool HadRuntimeError = false;
+        private static Interpreter Interpreter = new Interpreter();
 
         static int Main(string[] args)
         {
@@ -32,7 +34,9 @@ namespace lox
         {
             var contents = File.ReadAllText(filePath);
             Run(contents);
-            return HadError ? 65 : 0;
+            if (HadError) return 65;
+            if (HadRuntimeError) return 70;
+            return 0;
         }
 
         private static void RunPrompt()
@@ -81,7 +85,18 @@ namespace lox
 
             var _ = exprResult.MapOrElse(
                 expr => {
-                    Console.WriteLine(new AstPrinter().Print(expr));
+                    Interpreter
+                        .Interpert(expr)
+                        .MapOrElse(
+                            obj => {
+                                Console.WriteLine(obj);
+                                return obj;
+                            },
+                            err => {
+                                Error(err);
+                                return err;
+                            }
+                        );
                     return expr;
                 },
                 error => {
@@ -96,7 +111,14 @@ namespace lox
             );
         }
 
-        public static void Error(int line, String message)
+        private static void Error(RuntimeError error)
+        {
+            Console.Error.WriteLine($"{error.message}");
+            Console.Error.WriteLine($"[line {error.token.Line}]");
+            HadRuntimeError = true;
+        }
+
+        private static void Error(int line, String message)
         {
             Report(line, "", message);
         }
