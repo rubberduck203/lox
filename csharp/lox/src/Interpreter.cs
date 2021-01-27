@@ -10,7 +10,7 @@ namespace lox
     using Result = lox.monads.Result<object, RuntimeError>;
     public record RuntimeError(Token token, string message);
 
-    public class Interpreter : Visitor<Result>
+    public class Interpreter : ExprVisitor<Result>
     {
         public Result Interpert(Expr expr) => Eval(expr);
 

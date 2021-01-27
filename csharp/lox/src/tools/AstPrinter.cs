@@ -4,7 +4,7 @@ using lox.ast;
 namespace lox.tools
 {
     ///<Summary>Prints a graphviz dot representation of the AST</Summary>
-    public class AstPrinter : Visitor<string>
+    public class AstPrinter : ExprVisitor<string>
     {
         public string Print(Expr expr) =>
             $"digraph {{{Environment.NewLine} {expr.Accept(this)}{Environment.NewLine}}}";
