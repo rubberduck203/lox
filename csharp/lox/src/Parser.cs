@@ -7,7 +7,8 @@ using lox.monads;
 
 namespace lox
 {
-    using Result = lox.monads.Result<Expr, ParseError>;
+    using ExprResult = lox.monads.Result<Expr, ParseError>;
+    using StmtResult = lox.monads.Result<Stmt, ParseError>;
     public record ParseError(Token token, string message);
     public class Parser
     {
@@ -19,10 +20,49 @@ namespace lox
             this.tokens = tokens;
         }
 
-        public Result Parse() => Expression();
+        public List<StmtResult> Parse() 
+        {
+            /*
+             * program -> statement* EOF ;
+             */
 
-        private Result Expression() => Equality();
-        private Result Equality()
+            //this is begging to be enumerable
+            var statements = new List<StmtResult>();
+            while(!IsAtEnd())
+                statements.Add(Statement());
+
+            return statements;
+        }
+
+        private StmtResult Statement()
+        {
+            /*
+             * statement -> exprStmt | printStmt ; 
+             */
+            if (Match(TokenType.Print))
+                return PrintStatement();
+
+            return ExpressionStatement();
+        }
+
+        private StmtResult PrintStatement() =>
+            /*
+             * printStmt -> "print" expression ";" ; 
+             */
+            from value in Expression()
+            from token in Consume(TokenType.Semicolon, "Expected ';' after value.")
+            select new PrintStmt(value) as Stmt;
+
+        private StmtResult ExpressionStatement() =>
+            /* 
+             * exprStmt -> expression ";" ; 
+             */
+            from expr in Expression()
+            from token in Consume(TokenType.Semicolon, "Expected ';' after expression.")
+            select new ExpressionStmt(expr) as Stmt;
+
+        private ExprResult Expression() => Equality();
+        private ExprResult Equality()
         {
             /* 
              * equality → comparison ( ( "!=" | "==" ) comparison )* ; 
@@ -30,7 +70,7 @@ namespace lox
             return ParseBinaryOperation(Comparison, TokenType.BangEqual, TokenType.EqualEqual);
         }
 
-        private Result Comparison()
+        private ExprResult Comparison()
         {
             /*
              * comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
@@ -38,7 +78,7 @@ namespace lox
             return ParseBinaryOperation(Term, TokenType.Greater, TokenType.GreaterEqual, TokenType.Less, TokenType.LessEqual);
         }
 
-        private Result Term()
+        private ExprResult Term()
         {
             /*
              * term → factor ( ( "-" | "+" ) factor )* ;
@@ -46,7 +86,7 @@ namespace lox
             return ParseBinaryOperation(Factor, TokenType.Minus, TokenType.Plus);
         }
 
-        private Result Factor()
+        private ExprResult Factor()
         {
             /*
              * factor → unary ( ( "/" | "*" ) unary )* ;
@@ -54,7 +94,7 @@ namespace lox
             return ParseBinaryOperation(Unary, TokenType.Slash, TokenType.Star);
         }
 
-        private Result ParseBinaryOperation(Func<Result> next, params TokenType[] tokenTypes)
+        private ExprResult ParseBinaryOperation(Func<ExprResult> next, params TokenType[] tokenTypes)
         {
             /*
              * current -> next ( ( tokenA | tokenB | etc. ) next )* ;
@@ -62,21 +102,21 @@ namespace lox
             return
                 next()
                 .Bind(expr => {
-                    var result = Result.Ok(expr);
+                    var result = ExprResult.Ok(expr);
                     while(Match(tokenTypes))
                     {
                         var @operator = PreviousToken();
                         result = 
                             next()
                             .Bind(right => 
-                                Result.Ok(new BinaryExpr(expr, @operator, right))
+                                ExprResult.Ok(new BinaryExpr(expr, @operator, right))
                             );
                     }
                     return result;
                 });
         }
 
-        private Result Unary()
+        private ExprResult Unary()
         {
             /*
              * unary → ( "!" | "-" ) unary
@@ -87,25 +127,25 @@ namespace lox
                 var @operator = PreviousToken();
                 return 
                     Unary()
-                    .Bind(right => Result.Ok(new UnaryExpr(@operator, right)));
+                    .Bind(right => ExprResult.Ok(new UnaryExpr(@operator, right)));
             }
             return Primary();
         }
 
-        private Result Primary()
+        private ExprResult Primary()
         {
             /*
              * primary → NUMBER | STRING | "true" | "false" | "nil"
              *         | "(" expression ")" ;
              */
             if(Match(TokenType.False))
-                return Result.Ok(new LiteralExpr(false));
+                return ExprResult.Ok(new LiteralExpr(false));
             if(Match(TokenType.True))
-                return Result.Ok(new LiteralExpr(true));
+                return ExprResult.Ok(new LiteralExpr(true));
             if(Match(TokenType.Nil))
-                return Result.Ok(new LiteralExpr(null));
+                return ExprResult.Ok(new LiteralExpr(null));
             if(Match(TokenType.Number, TokenType.String))
-                return Result.Ok(new LiteralExpr(PreviousToken().Literal));
+                return ExprResult.Ok(new LiteralExpr(PreviousToken().Literal));
             if(Match(TokenType.LeftParen))
             {
                 Expression()
@@ -113,11 +153,11 @@ namespace lox
                     //consume returns a different result type
                     return
                         Consume(TokenType.RightParen, "Expected ')' after expression.")
-                        .Bind(_token => Result.Ok(new GroupingExpr(expr)));
+                        .Bind(_token => ExprResult.Ok(new GroupingExpr(expr)));
                 });
             }
 
-            return Result.Err(new ParseError(Peek(), "Expected expression."));
+            return ExprResult.Err(new ParseError(Peek(), "Expected expression."));
         }
 
         private Result<Token, ParseError> Consume(TokenType tokenType, String message)

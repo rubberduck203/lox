@@ -88,15 +88,15 @@ namespace lox.ast {
 
     public interface StmtVisitor<T>
     {
-        T VisitBlockStmt(BlockStmt blockStmt);
-        T VisitClassStmt(ClassStmt classStmt);
-        T VisitExpressionStmt(ExpressionStmt expressionStmt);
-        T VisitFunctionStmt(FunctionStmt functionStmt);
-        T IfStmt(IfStmt ifStmt);
-        T PrintStmt(PrintStmt printStmt);
-        T ReturnStmt(ReturnStmt returnStmt);
-        T VarStmt(VarStmt varStmt);
-        T WhileStmt(WhileStmt whileStmt);
+        T VisitBlockStmt(BlockStmt stmt);
+        T VisitClassStmt(ClassStmt stmt);
+        T VisitExpressionStmt(ExpressionStmt stmt);
+        T VisitFunctionStmt(FunctionStmt stmt);
+        T IfStmt(IfStmt stmt);
+        T PrintStmt(PrintStmt stmt);
+        T ReturnStmt(ReturnStmt stmt);
+        T VarStmt(VarStmt stmt);
+        T WhileStmt(WhileStmt stmt);
     }
 
     public abstract record Stmt

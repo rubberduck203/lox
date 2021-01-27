@@ -81,34 +81,34 @@ namespace lox
                     && t.TokenType != TokenType.NewLine
                 );
             var parser = new Parser(tokens.ToList());
-            var exprResult = parser.Parse();
+            var statementResults = parser.Parse();
 
-            var _ = exprResult.MapOrElse(
-                expr => {
-                    Interpreter
-                        .Interpert(expr)
-                        .MapOrElse(
-                            obj => {
-                                Console.WriteLine(obj);
-                                return obj;
-                            },
-                            err => {
-                                Error(err);
-                                return err;
-                            }
-                        );
-                    return expr;
-                },
-                error => {
+            if (statementResults.Any(r => r.IsErr()))
+            {
+                var errors =
+                    statementResults
+                    .Where(r => r.IsErr())
+                    .Select(r => r.Error());
+                foreach(var error in errors)
+                {
                     if (error.token.TokenType == TokenType.EoF) 
                     {
                         Report(error.token.Line, " at end", error.message);
                     } else {
                         Report(error.token.Line, $" at '{error.token.Lexeme}'", error.message);
                     }
-                    return error;
                 }
-            );
+                return;
+            }
+
+            //we just checked for parse errors,
+            // so we can simply unwrap
+            var statements =
+                statementResults
+                .Select(r => r.Unwrap())
+                .ToList();
+
+            Interpreter.Interpret(statements);
         }
 
         private static void Error(RuntimeError error)

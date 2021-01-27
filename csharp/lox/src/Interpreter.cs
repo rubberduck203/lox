@@ -10,9 +10,19 @@ namespace lox
     using Result = lox.monads.Result<object, RuntimeError>;
     public record RuntimeError(Token token, string message);
 
-    public class Interpreter : ExprVisitor<Result>
+    public class Interpreter : ExprVisitor<Result>, StmtVisitor<Result>
     {
-        public Result Interpert(Expr expr) => Eval(expr);
+        public void Interpret(List<Stmt> statements)
+        {
+            //TODO: HANDLE RUNTIME ERRORS
+            foreach(var statement in statements)
+            {
+                Execute(statement);
+            }
+        }
+
+        private Result Execute(Stmt stmt) =>
+            stmt.Accept(this);
 
         public Result VisitAssignExpr(AssignExpr expr)
         {
@@ -125,5 +135,54 @@ namespace lox
                 (null,_) => false,
                 (object a, object b) => a.Equals(b) 
             };
+
+        public Result<object, RuntimeError> VisitBlockStmt(BlockStmt stmt)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Result<object, RuntimeError> VisitClassStmt(ClassStmt stmt)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Result<object, RuntimeError> VisitExpressionStmt(ExpressionStmt stmt) =>
+            // expressions may have side effects, 
+            // so we have to evaluate it, even though we're discarding it
+            from value in Eval(stmt.expr)
+            select (object)null;
+
+        public Result<object, RuntimeError> VisitFunctionStmt(FunctionStmt stmt)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Result<object, RuntimeError> IfStmt(IfStmt stmt)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Result<object, RuntimeError> PrintStmt(PrintStmt stmt) => 
+            // method syntax makes it easier to perform side effects
+            Eval(stmt.expr)
+            .Select(value => {
+                Console.WriteLine(value);
+                return (object)null;
+            });
+
+        public Result<object, RuntimeError> ReturnStmt(ReturnStmt stmt)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Result<object, RuntimeError> VarStmt(VarStmt stmt)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Result<object, RuntimeError> WhileStmt(WhileStmt stmt)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
