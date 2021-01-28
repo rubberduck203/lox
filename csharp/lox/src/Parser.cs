@@ -36,15 +36,20 @@ namespace lox
 
         private StmtResult Declaration()
         {
-            /*
+            /* 
              * declaration → varDecl | statement ;
              */
+            var result =
+                Match(TokenType.Var)
+                ? VarDeclaration()
+                : Statement();
 
-            //TODO: synchronize on error
-            if (Match(TokenType.Var))
-                return VarDeclaration();
-
-            return Statement();
+            return
+                result
+                .MapErr(err => {
+                    Synchronize();
+                    return err;
+                });
         }
 
         private StmtResult VarDeclaration() =>
