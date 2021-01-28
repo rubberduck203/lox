@@ -198,7 +198,7 @@ namespace lox
         private void Synchronize()
         {
             //when an error occurs, try to find the next statement we can parse
-            do
+            while(!IsAtEnd())
             {
                 Advance();
                 if(PreviousToken().TokenType == TokenType.Semicolon)
@@ -215,7 +215,7 @@ namespace lox
                     case TokenType.Return:
                         return;
                 }
-            } while(!IsAtEnd());
+            }
         }
 
         private bool Match(params TokenType[] tokenTypes)
