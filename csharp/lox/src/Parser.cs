@@ -23,16 +23,37 @@ namespace lox
         public List<StmtResult> Parse() 
         {
             /*
-             * program -> statement* EOF ;
+             * program -> declaration* EOF ;
              */
 
             //this is begging to be enumerable
             var statements = new List<StmtResult>();
             while(!IsAtEnd())
-                statements.Add(Statement());
+                statements.Add(Declaration());
 
             return statements;
         }
+
+        private StmtResult Declaration()
+        {
+            /*
+             * declaration → varDecl | statement ;
+             */
+
+            //TODO: synchronize on error
+            if (Match(TokenType.Var))
+                return VarDeclaration();
+
+            return Statement();
+        }
+
+        private StmtResult VarDeclaration() =>
+            /*
+             * varDecl → "var" IDENTIFIER ( "=" expression )? ";" ;
+             */
+            from name in Consume(TokenType.Identifier, "Expected variable name.")
+            from initializer in Match(TokenType.Equal) ? Expression() : ExprResult.Ok(null)
+            select new VarStmt(name, initializer) as Stmt;
 
         private StmtResult Statement()
         {
@@ -136,7 +157,8 @@ namespace lox
         {
             /*
              * primary → NUMBER | STRING | "true" | "false" | "nil"
-             *         | "(" expression ")" ;
+             *         | "(" expression ")"
+             *         | IDENTIFIER ;
              */
             if(Match(TokenType.False))
                 return ExprResult.Ok(new LiteralExpr(false));
@@ -146,15 +168,15 @@ namespace lox
                 return ExprResult.Ok(new LiteralExpr(null));
             if(Match(TokenType.Number, TokenType.String))
                 return ExprResult.Ok(new LiteralExpr(PreviousToken().Literal));
+            if(Match(TokenType.Identifier))
+                return ExprResult.Ok(new VariableExpr(PreviousToken()));
+            
             if(Match(TokenType.LeftParen))
             {
-                Expression()
-                .Bind(expr => {
-                    //consume returns a different result type
-                    return
-                        Consume(TokenType.RightParen, "Expected ')' after expression.")
-                        .Bind(_token => ExprResult.Ok(new GroupingExpr(expr)));
-                });
+                return 
+                    from expr in Expression()
+                    from token in Consume(TokenType.RightParen, "Expected ')' after expression.")
+                    select new GroupingExpr(expr) as Expr;
             }
 
             return ExprResult.Err(new ParseError(Peek(), "Expected expression."));
