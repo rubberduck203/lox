@@ -12,6 +12,11 @@ namespace lox
 
     public class Interpreter : ExprVisitor<Result>, StmtVisitor<Result>
     {
+        private readonly Env Env = new();
+        
+        //helper for emulating Result<void,error>
+        private object Void => null;
+
         public IEnumerable<RuntimeError> Interpret(List<Stmt> statements) =>
             statements
             .Select(Execute)
@@ -112,10 +117,8 @@ namespace lox
                 _ => Result.Err(new RuntimeError(token, "Invalid unary operation."))
             };
 
-        public Result VisitVariableExpr(VariableExpr expr)
-        {
-            throw new NotImplementedException();
-        }
+        public Result VisitVariableExpr(VariableExpr expr) =>
+            Env.Lookup(expr.name);
 
         private Result Eval(Expr expr) =>
             expr.Accept(this);
@@ -148,37 +151,47 @@ namespace lox
             // expressions may have side effects, 
             // so we have to evaluate it, even though we're discarding it
             from value in Eval(stmt.expr)
-            select (object)null;
+            select Void;
 
         public Result<object, RuntimeError> VisitFunctionStmt(FunctionStmt stmt)
         {
             throw new NotImplementedException();
         }
 
-        public Result<object, RuntimeError> IfStmt(IfStmt stmt)
+        public Result<object, RuntimeError> VisitIfStmt(IfStmt stmt)
         {
             throw new NotImplementedException();
         }
 
-        public Result<object, RuntimeError> PrintStmt(PrintStmt stmt) => 
+        public Result<object, RuntimeError> VisitPrintStmt(PrintStmt stmt) => 
             // method syntax makes it easier to perform side effects
             Eval(stmt.expr)
             .Select(value => {
                 Console.WriteLine(value);
-                return (object)null;
+                return Void;
             });
 
-        public Result<object, RuntimeError> ReturnStmt(ReturnStmt stmt)
+        public Result<object, RuntimeError> VisitReturnStmt(ReturnStmt stmt)
         {
             throw new NotImplementedException();
         }
 
-        public Result<object, RuntimeError> VarStmt(VarStmt stmt)
+        public Result<object, RuntimeError> VisitVarStmt(VarStmt stmt)
         {
-            throw new NotImplementedException();
+            var value =
+                stmt.initializer is null
+                ? Result.Ok(null)
+                : Eval(stmt.initializer);
+            
+            return 
+                value
+                .Select(value => {
+                    Env.Define(stmt.name.Lexeme, value);
+                    return Void;
+                });
         }
 
-        public Result<object, RuntimeError> WhileStmt(WhileStmt stmt)
+        public Result<object, RuntimeError> VisitWhileStmt(WhileStmt stmt)
         {
             throw new NotImplementedException();
         }

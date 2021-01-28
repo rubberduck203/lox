@@ -10,11 +10,11 @@ namespace lox.ast {
         T VisitClassStmt(ClassStmt stmt);
         T VisitExpressionStmt(ExpressionStmt stmt);
         T VisitFunctionStmt(FunctionStmt stmt);
-        T IfStmt(IfStmt stmt);
-        T PrintStmt(PrintStmt stmt);
-        T ReturnStmt(ReturnStmt stmt);
-        T VarStmt(VarStmt stmt);
-        T WhileStmt(WhileStmt stmt);
+        T VisitIfStmt(IfStmt stmt);
+        T VisitPrintStmt(PrintStmt stmt);
+        T VisitReturnStmt(ReturnStmt stmt);
+        T VisitVarStmt(VarStmt stmt);
+        T VisitWhileStmt(WhileStmt stmt);
     }
 
     public abstract record Stmt
@@ -49,30 +49,30 @@ namespace lox.ast {
     public record IfStmt(Expr condition, Stmt thenBranch, Stmt elseBranch) : Stmt
     {
         public override T Accept<T>(StmtVisitor<T> visitor) =>
-            visitor.IfStmt(this);
+            visitor.VisitIfStmt(this);
     }
 
     public record PrintStmt(Expr expr) : Stmt
     {
         public override T Accept<T>(StmtVisitor<T> visitor) =>
-            visitor.PrintStmt(this);
+            visitor.VisitPrintStmt(this);
     }
 
     public record ReturnStmt(Token keyword, Expr value) : Stmt
     {
         public override T Accept<T>(StmtVisitor<T> visitor) =>
-            visitor.ReturnStmt(this);
+            visitor.VisitReturnStmt(this);
     }
 
     public record VarStmt(Token name, Expr initializer) : Stmt
     {
         public override T Accept<T>(StmtVisitor<T> visitor) =>
-            visitor.VarStmt(this);
+            visitor.VisitVarStmt(this);
     }
 
     public record WhileStmt(Expr condition, Stmt body) : Stmt
     {
         public override T Accept<T>(StmtVisitor<T> visitor) =>
-            visitor.WhileStmt(this);
+            visitor.VisitWhileStmt(this);
     }
 }

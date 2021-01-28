@@ -58,6 +58,7 @@ namespace lox
              */
             from name in Consume(TokenType.Identifier, "Expected variable name.")
             from initializer in Match(TokenType.Equal) ? Expression() : ExprResult.Ok(null)
+            from _ in Consume(TokenType.Semicolon, "Expected ';' after variable declaration.")
             select new VarStmt(name, initializer) as Stmt;
 
         private StmtResult Statement()
