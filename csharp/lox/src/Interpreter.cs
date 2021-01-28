@@ -12,14 +12,12 @@ namespace lox
 
     public class Interpreter : ExprVisitor<Result>, StmtVisitor<Result>
     {
-        public void Interpret(List<Stmt> statements)
-        {
-            //TODO: HANDLE RUNTIME ERRORS
-            foreach(var statement in statements)
-            {
-                Execute(statement);
-            }
-        }
+        public IEnumerable<RuntimeError> Interpret(List<Stmt> statements) =>
+            statements
+            .Select(Execute)
+            .ToList() //ensure we materialize all stmt executions
+            .Where(r => r.IsErr())
+            .Select(r => r.Error());
 
         private Result Execute(Stmt stmt) =>
             stmt.Accept(this);

@@ -108,7 +108,11 @@ namespace lox
                 .Select(r => r.Unwrap())
                 .ToList();
 
-            Interpreter.Interpret(statements);
+            var runtimeErrors = Interpreter.Interpret(statements);
+            foreach(var error in runtimeErrors)
+            {
+                Error(error);
+            }
         }
 
         private static void Error(RuntimeError error)
