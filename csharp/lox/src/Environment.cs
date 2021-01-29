@@ -11,6 +11,17 @@ namespace lox
     public class Env
     {
         private readonly Dictionary<string,object> values = new();
+        private readonly Env enclosing;
+
+        public Env()
+        {
+            this.enclosing = null;
+        }
+
+        public Env(Env enclosing)
+        {
+            this.enclosing = enclosing;
+        }
 
         public void Define(string name, object value)
         {
@@ -27,6 +38,10 @@ namespace lox
                 values[name.Lexeme] = value;
                 return Result.Ok((object)null);
             }
+
+            if (enclosing is not null)
+                return enclosing.Assign(name, value);
+
             return Result.Err(new RuntimeError(name, $"Undefined variable '{name.Lexeme}'."));
         }
 
@@ -34,6 +49,9 @@ namespace lox
         {
             if (values.TryGetValue(name.Lexeme, out var value))
                 return Result.Ok(value);
+
+            if (enclosing is not null)
+                return enclosing.Lookup(name);
 
             return Result.Err(new RuntimeError(name, $"Undefined variable '{name.Lexeme}'."));
         }
