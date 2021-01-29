@@ -88,7 +88,40 @@ namespace lox
             from token in Consume(TokenType.Semicolon, "Expected ';' after expression.")
             select new ExpressionStmt(expr) as Stmt;
 
-        private ExprResult Expression() => Equality();
+        private ExprResult Expression() => Assignment();
+
+        private ExprResult Assignment()
+        {
+            /*
+             * assignment → IDENTIFIER "=" assignment
+             *              | equality ;
+             */
+            //https://craftinginterpreters.com/statements-and-state.html#assignment
+            return
+                from expr in Equality()        //if left is a valid expression
+                from expr2 in LookAhead(expr)  //look to see if it's an assignment
+                select expr2;                  //if not, return expr we gave to the lookahead
+
+            ExprResult LookAhead(Expr expr)
+            {
+                if(Match(TokenType.Equal))
+                {
+                    var eq = PreviousToken();
+                    return
+                        from value in Assignment() //recurse to snag the right hand expr
+                        from assignment in VariableAssignment(expr, value, eq)
+                        select assignment;
+                }
+                return ExprResult.Ok(expr); //not a variable assignment, give the plain expr back
+            }
+
+            ExprResult VariableAssignment(Expr expr, Expr value, Token equals) =>
+                (expr is VariableExpr variable)
+                    ? ExprResult.Ok(new AssignExpr(variable.name, value))
+                    : ExprResult.Err(new ParseError(equals, "Invalid assignment target."));
+        }
+            
+
         private ExprResult Equality()
         {
             /* 

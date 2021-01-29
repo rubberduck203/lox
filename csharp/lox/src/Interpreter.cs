@@ -27,10 +27,10 @@ namespace lox
         private Result Execute(Stmt stmt) =>
             stmt.Accept(this);
 
-        public Result VisitAssignExpr(AssignExpr expr)
-        {
-            throw new NotImplementedException();
-        }
+        public Result VisitAssignExpr(AssignExpr expr) =>
+            from value in Eval(expr.value)
+            from _ in Env.Assign(expr.name, value)
+            select value;
 
         public Result VisitBinaryExpr(BinaryExpr expr) =>
             from left in Eval(expr.left)
@@ -57,13 +57,11 @@ namespace lox
             };
         }
 
-        private Func<Func<Double, Double, object>,Result> EvalNumericOperation(Token token, object left, object right)
-        {
-            return f => (left, right) switch {
+        private Func<Func<Double, Double, object>,Result> EvalNumericOperation(Token token, object left, object right) =>
+            f => (left, right) switch {
                 (Double l, Double r) => Result.Ok(f(l,r)),
                 _ => Result.Err(new RuntimeError(token, $"Type error: Cannot perform operation on {left} and {right}"))
             };
-        }
 
         public Result VisitCallExpr(CallExpr expr)
         {

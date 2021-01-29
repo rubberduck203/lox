@@ -7,7 +7,7 @@ using lox.monads;
 
 namespace lox
 {
-    using LookupResult = Result<object,RuntimeError>;
+    using Result = Result<object,RuntimeError>;
     public class Env
     {
         private readonly Dictionary<string,object> values = new();
@@ -20,12 +20,22 @@ namespace lox
             values[name] = value;
         }
 
-        public LookupResult Lookup(Token name)
+        public Result Assign(Token name, object value)
+        {
+            if (values.ContainsKey(name.Lexeme))
+            {
+                values[name.Lexeme] = value;
+                return Result.Ok((object)null);
+            }
+            return Result.Err(new RuntimeError(name, $"Undefined variable '{name.Lexeme}'."));
+        }
+
+        public Result Lookup(Token name)
         {
             if (values.TryGetValue(name.Lexeme, out var value))
-                return LookupResult.Ok(value);
+                return Result.Ok(value);
 
-            return LookupResult.Err(new RuntimeError(name, $"Undefined variable '{name.Lexeme}'."));
+            return Result.Err(new RuntimeError(name, $"Undefined variable '{name.Lexeme}'."));
         }
     }
 }
