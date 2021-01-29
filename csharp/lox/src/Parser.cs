@@ -64,12 +64,43 @@ namespace lox
         private StmtResult Statement()
         {
             /*
-             * statement -> exprStmt | printStmt ; 
+             * statement -> exprStmt | printStmt | block ; 
              */
             if (Match(TokenType.Print))
                 return PrintStatement();
 
+            if (Match(TokenType.LeftBrace))
+            {
+                return BlockStatement();
+            }
+
             return ExpressionStatement();
+        }
+
+        private StmtResult BlockStatement()
+        {
+            /* block → "{" declaration* "}" ; */
+            var statements = StatementsInBlock().ToList();
+            // because StatementsInBlock stops producing on error
+            // it's okay to just check the last one
+            return 
+                from last in statements.Last()
+                from token in Consume(TokenType.RightBrace, "Expected '}' after block.")
+                select new BlockStmt(statements.Select(r => r.Unwrap()).ToList()) as Stmt;
+        }
+
+        private IEnumerable<StmtResult> StatementsInBlock()
+        {
+            var failed = false;
+            while(!Check(TokenType.RightBrace) && !IsAtEnd() && !failed)
+            {
+                var result = Declaration();
+                if (result.IsErr())
+                {
+                    failed = true;
+                }
+                yield return result;
+            }
         }
 
         private StmtResult PrintStatement() =>

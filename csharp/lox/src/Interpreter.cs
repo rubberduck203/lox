@@ -12,7 +12,7 @@ namespace lox
 
     public class Interpreter : ExprVisitor<Result>, StmtVisitor<Result>
     {
-        private readonly Env Env = new();
+        private Env Env = new();
         
         //helper for emulating Result<void,error>
         private object Void => null;
@@ -135,9 +135,25 @@ namespace lox
                 (object a, object b) => a.Equals(b) 
             };
 
-        public Result<object, RuntimeError> VisitBlockStmt(BlockStmt stmt)
+        public Result<object, RuntimeError> VisitBlockStmt(BlockStmt stmt) =>
+            ExecuteBlock(stmt.statements, new Env(this.Env));
+
+        private Result<object, RuntimeError> ExecuteBlock(List<Stmt> statements, Env env)
         {
-            throw new NotImplementedException();
+            // it's a little crude to modify the internal state like this
+            // the alternative is to pass the env along and provide an immutable copy to the functions
+            var prev = this.Env;
+            this.Env = env;
+
+            var result =
+                statements
+                .Aggregate(
+                    Result<object,RuntimeError>.Ok(null),
+                    (acc,curr) => acc.Bind(_ => Execute(curr))
+                );
+
+            this.Env = prev;
+            return result;
         }
 
         public Result<object, RuntimeError> VisitClassStmt(ClassStmt stmt)
