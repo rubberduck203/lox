@@ -64,18 +64,29 @@ namespace lox
         private StmtResult Statement()
         {
             /*
-             * statement -> exprStmt | printStmt | block ; 
+             * statement -> exprStmt | ifStmt | printStmt | block ; 
              */
+            if (Match(TokenType.If))
+                return IfStatement();
             if (Match(TokenType.Print))
                 return PrintStatement();
-
             if (Match(TokenType.LeftBrace))
-            {
                 return BlockStatement();
-            }
 
             return ExpressionStatement();
         }
+
+        private StmtResult IfStatement() =>
+            /*
+             * ifStmt → "if" "(" expression ")" statement
+             *          ( "else" statement )? ;
+             */
+            from lParen in Consume(TokenType.LeftParen, "Expected '(' after 'if'.")
+            from condition in Expression()
+            from rParent in Consume(TokenType.RightParen, "Expected ')' after condition.")
+            from thenBranch in Statement()
+            from elseBranch in Match(TokenType.Else) ? Statement() : StmtResult.Ok(null)
+            select new IfStmt(condition, thenBranch, elseBranch) as Stmt;
 
         private StmtResult BlockStatement()
         {

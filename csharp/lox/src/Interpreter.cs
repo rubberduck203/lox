@@ -135,10 +135,10 @@ namespace lox
                 (object a, object b) => a.Equals(b) 
             };
 
-        public Result<object, RuntimeError> VisitBlockStmt(BlockStmt stmt) =>
+        public Result VisitBlockStmt(BlockStmt stmt) =>
             ExecuteBlock(stmt.statements, new Env(this.Env));
 
-        private Result<object, RuntimeError> ExecuteBlock(List<Stmt> statements, Env env)
+        private Result ExecuteBlock(List<Stmt> statements, Env env)
         {
             // it's a little crude to modify the internal state like this
             // the alternative is to pass the env along and provide an immutable copy to the functions
@@ -156,25 +156,36 @@ namespace lox
             return result;
         }
 
-        public Result<object, RuntimeError> VisitClassStmt(ClassStmt stmt)
+        public Result VisitClassStmt(ClassStmt stmt)
         {
             throw new NotImplementedException();
         }
 
-        public Result<object, RuntimeError> VisitExpressionStmt(ExpressionStmt stmt) =>
+        public Result VisitExpressionStmt(ExpressionStmt stmt) =>
             // expressions may have side effects, 
             // so we have to evaluate it, even though we're discarding it
             from value in Eval(stmt.expr)
             select Void;
 
-        public Result<object, RuntimeError> VisitFunctionStmt(FunctionStmt stmt)
+        public Result VisitFunctionStmt(FunctionStmt stmt)
         {
             throw new NotImplementedException();
         }
 
-        public Result<object, RuntimeError> VisitIfStmt(IfStmt stmt)
+        public Result VisitIfStmt(IfStmt stmt) =>
+            from condition in Eval(stmt.condition)
+            from predicate in Result<bool, RuntimeError>.Ok(IsTruthy(condition))
+            from result in ExecuteIfStmt(predicate, stmt.thenBranch, stmt.elseBranch)
+            select result;
+
+        private Result ExecuteIfStmt(bool predicate, Stmt thenBranch, Stmt elseBranch)
         {
-            throw new NotImplementedException();
+            if (predicate)
+                return Execute(thenBranch);
+            else if(elseBranch is not null)
+                return Execute(elseBranch);
+            else
+                return Result.Ok(null);
         }
 
         public Result<object, RuntimeError> VisitPrintStmt(PrintStmt stmt) => 
