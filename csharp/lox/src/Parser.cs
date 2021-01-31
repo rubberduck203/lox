@@ -64,8 +64,10 @@ namespace lox
         private StmtResult Statement()
         {
             /*
-             * statement -> exprStmt | ifStmt | printStmt | whileStmt | block ; 
+             * statement -> exprStmt | forStmt | ifStmt | printStmt | whileStmt | block ;
              */
+            if (Match(TokenType.For))
+                return ForStatement();
             if (Match(TokenType.If))
                 return IfStatement();
             if (Match(TokenType.Print))
@@ -85,6 +87,62 @@ namespace lox
             from expr in Expression()
             from token in Consume(TokenType.Semicolon, "Expected ';' after expression.")
             select new ExpressionStmt(expr) as Stmt;
+
+        private StmtResult ForStatement()
+        {
+            /*
+             * forStmt → "for" "(" ( varDecl | exprStmt | ";" )
+             *           expression? ";"
+             *           expression? ")" statement ;
+             */
+            StmtResult ForInitializer()
+            {
+                if(Match(TokenType.Semicolon))
+                    return StmtResult.Ok(null);
+                if(Match(TokenType.Var))
+                    return VarDeclaration();
+                return ExpressionStatement();
+            }
+
+            ExprResult ForCondition()
+            {
+                if(Check(TokenType.Semicolon))
+                    return ExprResult.Ok(null);
+                return Expression();
+            }
+
+            ExprResult ForIncrementer()
+            {
+                if(Check(TokenType.RightParen))
+                    return ExprResult.Ok(null);
+                return Expression();
+            }
+
+            Stmt BuildForAst(Stmt initializer, Expr condition, Expr incrementer, Stmt statement)
+            {
+                // express `for(var i = 0; i < 10; i++) { statement }` as a while loop;
+                // var i = 0;
+                // while(i<10) {
+                //   { statement; }
+                //   i++;
+                // }
+                var body = incrementer is null ? statement : new BlockStmt(new List<Stmt>() {statement, new ExpressionStmt(incrementer)});
+                var cond = condition ?? new LiteralExpr(true);
+                var loop = new WhileStmt(cond, body);
+                var block = initializer is null ? loop : new BlockStmt(new List<Stmt>() {initializer, loop }) as Stmt;
+                return block;
+            }
+
+            return
+                from lParen in Consume(TokenType.LeftParen, "Expected '(' after 'for'.")
+                from initializer in ForInitializer() //first semi is parsed as part of initializer
+                from condition in ForCondition()
+                from semi2 in Consume(TokenType.Semicolon, "Expected ';' after condition.")
+                from incrementer in ForIncrementer()
+                from rParen in Consume(TokenType.RightParen, "Expected ')' after increment expression.")
+                from statement in Statement()
+                select BuildForAst(initializer, condition, incrementer, statement);
+        }
 
         private StmtResult IfStatement() =>
             /*
@@ -106,15 +164,13 @@ namespace lox
             from token in Consume(TokenType.Semicolon, "Expected ';' after value.")
             select new PrintStmt(value) as Stmt;
 
-        private StmtResult WhileStatement() {
+        private StmtResult WhileStatement() =>
             // whileStmt → "while" "(" expression ")" statement ;
-            return
-                from lParen in Consume(TokenType.LeftParen, "Expected '(' after 'while'.")
-                from condition in Expression()
-                from rParen in Consume(TokenType.RightParen, "Expected ')' after condition.")
-                from body in Statement()
-                select new WhileStmt(condition, body) as Stmt;
-        }
+            from lParen in Consume(TokenType.LeftParen, "Expected '(' after 'while'.")
+            from condition in Expression()
+            from rParen in Consume(TokenType.RightParen, "Expected ')' after condition.")
+            from body in Statement()
+            select new WhileStmt(condition, body) as Stmt;
 
         private StmtResult BlockStatement()
         {
