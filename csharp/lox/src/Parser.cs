@@ -319,8 +319,8 @@ namespace lox
             {
                 var @operator = PreviousToken();
                 return 
-                    Unary()
-                    .Bind(right => ExprResult.Ok(new UnaryExpr(@operator, right)));
+                    from right in Unary()
+                    select new UnaryExpr(@operator, right) as Expr;
             }
             return Primary();
         }
