@@ -330,18 +330,10 @@ namespace lox
             from call in Match(TokenType.LeftParen) ? FinishCall(expr) : ExprResult.Ok(expr)
             select call;
 
-        private ExprResult FinishCall(Expr expr)
-        {
-            // we need to iterate a few times,
-            // so materialize the iterable
-            var args = Arguments().ToList();
-            if (args.Any(r => r.IsErr()))
-                return args.Last();
-
-            return
-                from rParen in Consume(TokenType.RightParen, "Expected ')'.")
-                select new CallExpr(expr, rParen, args.Select(r => r.Unwrap())) as Expr;
-        }
+        private ExprResult FinishCall(Expr expr) =>
+            from args in Arguments().ToList().ToResult()
+            from rParen in Consume(TokenType.RightParen, "Expected ')'.")
+            select new CallExpr(expr, rParen, args) as Expr;
 
         private IEnumerable<ExprResult> Arguments()
         {

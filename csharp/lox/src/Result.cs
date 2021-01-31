@@ -129,6 +129,10 @@ namespace lox.monads {
 
     public static class IEnumerableResultExt
     {
+        ///<summary>
+        /// Transforms an IEnumerable of Result into a Result of IEnumerable
+        /// If any of the source results are error, the first is returned.
+        ///</summary>
         public static Result<IEnumerable<T>,E> ToResult<T,E>(this IEnumerable<Result<T,E>> source)
             where E : class
         {
