@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace lox.monads {
 
@@ -123,5 +125,17 @@ namespace lox.monads {
                         convert(x)
                         .Bind(y => Result<V,E>.Ok(select(x, y)))
                 );
+    }
+
+    public static class IEnumerableResultExt
+    {
+        public static Result<IEnumerable<T>,E> ToResult<T,E>(this IEnumerable<Result<T,E>> source)
+            where E : class
+        {
+            if (source.Any(r => r.IsErr()))
+                return Result<IEnumerable<T>,E>.Err(source.First(r => r.IsErr()).Error());
+
+            return Result<IEnumerable<T>,E>.Ok(source.Select(r => r.Unwrap()));
+        }
     }
 }

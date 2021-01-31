@@ -312,8 +312,7 @@ namespace lox
         private ExprResult Unary()
         {
             /*
-             * unary → ( "!" | "-" ) unary
-             *       | primary ;
+             * unary → ( "!" | "-" ) unary | call ;
              */
             if(Match(TokenType.Bang, TokenType.Minus))
             {
@@ -322,7 +321,41 @@ namespace lox
                     from right in Unary()
                     select new UnaryExpr(@operator, right) as Expr;
             }
-            return Primary();
+            return Call();
+        }
+
+        private ExprResult Call() =>
+            // call → primary ( "(" arguments? ")" )* ;
+            from expr in Primary()
+            from call in Match(TokenType.LeftParen) ? FinishCall(expr) : ExprResult.Ok(expr)
+            select call;
+
+        private ExprResult FinishCall(Expr expr)
+        {
+            // we need to iterate a few times,
+            // so materialize the iterable
+            var args = Arguments().ToList();
+            if (args.Any(r => r.IsErr()))
+                return args.Last();
+
+            return
+                from rParen in Consume(TokenType.RightParen, "Expected ')'.")
+                select new CallExpr(expr, rParen, args.Select(r => r.Unwrap())) as Expr;
+        }
+
+        private IEnumerable<ExprResult> Arguments()
+        {
+            //arguments → expression ( "," expression )* ;
+            var counter = 0;
+            do {
+                // maximum args; for compat with bytecode version
+                if (counter >= 255) {
+                    yield return ExprResult.Err(new ParseError(Peek(), "Can't have more than 255 arguments."));
+                    yield break;
+                }
+                counter++;
+                yield return Expression();
+            } while (Match(TokenType.Comma));
         }
 
         private ExprResult Primary()

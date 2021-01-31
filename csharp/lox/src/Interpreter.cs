@@ -63,10 +63,25 @@ namespace lox
                 _ => Result.Err(new RuntimeError(token, $"Type error: Cannot perform operation on {left} and {right}"))
             };
 
-        public Result VisitCallExpr(CallExpr expr)
-        {
-            throw new NotImplementedException();
-        }
+        public Result VisitCallExpr(CallExpr expr) =>
+            from callee in
+                Eval(expr.callee)
+            from callable in
+                callee is Callable c
+                ? Result<Callable,RuntimeError>.Ok(c)
+                : Result<Callable,RuntimeError>.Err(new RuntimeError(expr.paren, "Can only call functions and classes."))
+            from args in
+                expr
+                .arguments
+                .Select(Eval)
+                .ToResult()
+            from function in
+                args.Count() == callable.Arity
+                ? Result<Callable,RuntimeError>.Ok(callable)
+                : Result<Callable,RuntimeError>.Err(new RuntimeError(expr.paren, "Can only call functions and classes."))
+            from result in
+                function.Call(this, args)
+            select result;
 
         public Result VisitGetExpr(GetExpr expr)
         {
