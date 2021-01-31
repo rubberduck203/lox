@@ -81,7 +81,20 @@ namespace lox
 
         public Result VisitLogicalExpr(LogicalExpr expr)
         {
-            throw new NotImplementedException();
+            Result<bool,RuntimeError> Predicate(Token @operator, bool isTruthy) =>
+                @operator.TokenType switch {
+                    TokenType.And => Result<bool,RuntimeError>.Ok(!isTruthy),
+                    TokenType.Or => Result<bool,RuntimeError>.Ok(isTruthy),
+                    _ => Result<bool,RuntimeError>.Err(new RuntimeError(@operator, "Expected logical operator."))
+                };
+
+            return
+                from left in Eval(expr.left)
+                from condition in Result<bool,RuntimeError>.Ok(IsTruthy(left))
+                // translate into a consistent boolean value regardless of if we're talking about AND or OR
+                from predicate in Predicate(expr.@operator, condition)
+                from right in predicate ? Result.Ok(left) : Eval(expr.right)
+                select right;
         }
 
         public Result VisitSetExpr(SetExpr expr)

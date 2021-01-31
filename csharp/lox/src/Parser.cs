@@ -136,11 +136,11 @@ namespace lox
         {
             /*
              * assignment → IDENTIFIER "=" assignment
-             *              | equality ;
+             *              | logic_or ;
              */
             //https://craftinginterpreters.com/statements-and-state.html#assignment
             return
-                from expr in Equality()        //if left is a valid expression
+                from expr in LogicOr()        //if left is a valid expression
                 from expr2 in LookAhead(expr)  //look to see if it's an assignment
                 select expr2;                  //if not, return expr we gave to the lookahead
 
@@ -162,7 +162,30 @@ namespace lox
                     ? ExprResult.Ok(new AssignExpr(variable.name, value))
                     : ExprResult.Err(new ParseError(equals, "Invalid assignment target."));
         }
-            
+        
+        private ExprResult LogicOr() =>
+            // logic_or → logic_and ( "or" logic_and )* ;
+            ParseLogicalExpr(TokenType.Or, LogicOr, LogicAnd);
+
+        private ExprResult LogicAnd() =>
+            // logic_and → equality ( "and" equality )* ;
+            ParseLogicalExpr(TokenType.And, LogicAnd, Equality);
+
+        private ExprResult ParseLogicalExpr(TokenType tokenType, Func<ExprResult> current, Func<ExprResult> next)
+        {
+            // current -> next ( "token" next )* ;
+            ExprResult ParseRight(Expr left) {
+                var @operator = PreviousToken();
+                return
+                    from right in current()
+                    select new LogicalExpr(left, @operator, right) as Expr;
+            }
+
+            return
+                from left in next()
+                from right in Match(tokenType) ? ParseRight(left) : ExprResult.Ok(left)
+                select right;
+        }
 
         private ExprResult Equality()
         {
