@@ -186,9 +186,8 @@ namespace lox
         }
 
         public Result VisitIfStmt(IfStmt stmt) =>
-            from condition in Eval(stmt.condition)
-            from predicate in Result<bool, RuntimeError>.Ok(IsTruthy(condition))
-            from result in ExecuteIfStmt(predicate, stmt.thenBranch, stmt.elseBranch)
+            from condition in EvalCondition(stmt.condition)
+            from result in ExecuteIfStmt(condition, stmt.thenBranch, stmt.elseBranch)
             select result;
 
         private Result ExecuteIfStmt(bool predicate, Stmt thenBranch, Stmt elseBranch)
@@ -198,7 +197,7 @@ namespace lox
             else if(elseBranch is not null)
                 return Execute(elseBranch);
             else
-                return Result.Ok(null);
+                return Result.Ok(Void);
         }
 
         public Result<object, RuntimeError> VisitPrintStmt(PrintStmt stmt) => 
