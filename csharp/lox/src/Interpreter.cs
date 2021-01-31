@@ -229,9 +229,56 @@ namespace lox
                 });
         }
 
-        public Result<object, RuntimeError> VisitWhileStmt(WhileStmt stmt)
+        public Result VisitWhileStmt(WhileStmt stmt)
         {
-            throw new NotImplementedException();
+            // this is what the code below does,
+            //
+            // while(IsTruthy(Eval(stmt.condition)))
+            // {
+            //     Execute(stmt.body);
+            // }
+            // return null;
+            // 
+            // but we need to handle and propogate RuntimeErrors
+            // so we need to evaluate the condition inside the loop
+            // if an error occurs, we stop
+            // if the condition evaluates to false, we stop
+            // 
+            // Because the okSelector for MapOrElse returns a plain value,
+            // instead of a monad, we have to unwrap the underlying values.
+            //
+            // Recursion might be an option, but C# doesn't do tail call optimization,
+            // So doing so would likely blow the stack
+
+            var condition = true;
+            Result result = null;
+            while (condition)
+            {
+                result = 
+                    EvalCondition(stmt.condition)
+                    .MapOrElse(c => {
+                        condition = c;
+                        if(c)
+                        {
+                            var r = Execute(stmt.body);
+                            if (r.IsErr())
+                                return r.Error();
+                            return r.Unwrap();
+                        }
+                        else
+                        {
+                            return Void;
+                        }
+                    }, err => {
+                        condition = false;
+                        return err;
+                    });
+            }
+            return result;
         }
+
+        private Result<bool, RuntimeError> EvalCondition(Expr condition) =>
+            from c in Eval(condition)
+            select IsTruthy(c);
     }
 }

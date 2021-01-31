@@ -64,17 +64,27 @@ namespace lox
         private StmtResult Statement()
         {
             /*
-             * statement -> exprStmt | ifStmt | printStmt | block ; 
+             * statement -> exprStmt | ifStmt | printStmt | whileStmt | block ; 
              */
             if (Match(TokenType.If))
                 return IfStatement();
             if (Match(TokenType.Print))
                 return PrintStatement();
+            if (Match(TokenType.While))
+                return WhileStatement();
             if (Match(TokenType.LeftBrace))
                 return BlockStatement();
 
             return ExpressionStatement();
         }
+
+        private StmtResult ExpressionStatement() =>
+            /* 
+             * exprStmt -> expression ";" ; 
+             */
+            from expr in Expression()
+            from token in Consume(TokenType.Semicolon, "Expected ';' after expression.")
+            select new ExpressionStmt(expr) as Stmt;
 
         private StmtResult IfStatement() =>
             /*
@@ -87,6 +97,24 @@ namespace lox
             from thenBranch in Statement()
             from elseBranch in Match(TokenType.Else) ? Statement() : StmtResult.Ok(null)
             select new IfStmt(condition, thenBranch, elseBranch) as Stmt;
+
+        private StmtResult PrintStatement() =>
+            /*
+             * printStmt -> "print" expression ";" ; 
+             */
+            from value in Expression()
+            from token in Consume(TokenType.Semicolon, "Expected ';' after value.")
+            select new PrintStmt(value) as Stmt;
+
+        private StmtResult WhileStatement() {
+            // whileStmt → "while" "(" expression ")" statement ;
+            return
+                from lParen in Consume(TokenType.LeftParen, "Expected '(' after 'while'.")
+                from condition in Expression()
+                from rParen in Consume(TokenType.RightParen, "Expected ')' after condition.")
+                from body in Statement()
+                select new WhileStmt(condition, body) as Stmt;
+        }
 
         private StmtResult BlockStatement()
         {
@@ -113,22 +141,6 @@ namespace lox
                 yield return result;
             }
         }
-
-        private StmtResult PrintStatement() =>
-            /*
-             * printStmt -> "print" expression ";" ; 
-             */
-            from value in Expression()
-            from token in Consume(TokenType.Semicolon, "Expected ';' after value.")
-            select new PrintStmt(value) as Stmt;
-
-        private StmtResult ExpressionStatement() =>
-            /* 
-             * exprStmt -> expression ";" ; 
-             */
-            from expr in Expression()
-            from token in Consume(TokenType.Semicolon, "Expected ';' after expression.")
-            select new ExpressionStmt(expr) as Stmt;
 
         private ExprResult Expression() => Assignment();
 
