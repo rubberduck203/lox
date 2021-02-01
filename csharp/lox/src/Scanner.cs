@@ -16,6 +16,7 @@ namespace lox
             {"else", TokenType.Else},
             {"false", TokenType.False},
             {"for", TokenType.For},
+            {"fun", TokenType.Fun},
             {"if", TokenType.If},
             {"nil", TokenType.Nil},
             {"or", TokenType.Or},

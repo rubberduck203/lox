@@ -37,19 +37,55 @@ namespace lox
         private StmtResult Declaration()
         {
             /* 
-             * declaration → varDecl | statement ;
+             * declaration → funDecl | varDecl | statement ;
              */
-            var result =
-                Match(TokenType.Var)
-                ? VarDeclaration()
-                : Statement();
+
+            StmtResult Resolve()
+            {
+                if(Match(TokenType.Fun))
+                    return FunDeclaration("function");
+                if(Match(TokenType.Var))
+                    return VarDeclaration();
+                return Statement();
+            }
 
             return
-                result
+                Resolve()
                 .MapErr(err => {
                     Synchronize();
                     return err;
                 });
+        }
+
+        private StmtResult FunDeclaration(string kind) =>
+            // funDecl → "fun" function ;
+            // function → IDENTIFIER "(" parameters? ")" block ;
+            from identifier in Consume(TokenType.Identifier, $"Expected {kind} name.")
+            from lParen in Consume(TokenType.LeftParen, $"Expected '(' after {kind} name.")
+            from parameters in Parameters().ToList().ToResult()
+            from rParen in Consume(TokenType.RightParen, $"Expected ')' after parameters.")
+            from lBrace in Consume(TokenType.LeftBrace, $"Expected '{{' before {kind} body.")
+            //It's simpler to use the internal tooling for block and we get a better error message
+            from stmts in StatementsInBlock().ToList().ToResult()
+            from rBrace in Consume(TokenType.RightBrace, $"Expected '}}' after {kind} body.")
+            select new FunctionStmt(identifier, parameters.ToList(), stmts.ToList()) as Stmt;
+
+        private IEnumerable<Result<Token,ParseError>> Parameters()
+        {
+            // parameters → IDENTIFIER ( "," IDENTIFIER )* ;
+            if(!Check(TokenType.RightParen))
+            {
+                var counter = 0;
+                do {
+                    // maximum args; for compat with bytecode version
+                    if (counter >= 255) {
+                        yield return Result<Token,ParseError>.Err(new ParseError(Peek(), "Can't have more than 255 arguments."));
+                        yield break;
+                    }
+                    counter++;
+                    yield return Consume(TokenType.Identifier, "Expected parameter name.");
+                } while (Match(TokenType.Comma));
+            }
         }
 
         private StmtResult VarDeclaration() =>
