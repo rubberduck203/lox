@@ -338,16 +338,19 @@ namespace lox
         private IEnumerable<ExprResult> Arguments()
         {
             //arguments → expression ( "," expression )* ;
-            var counter = 0;
-            do {
-                // maximum args; for compat with bytecode version
-                if (counter >= 255) {
-                    yield return ExprResult.Err(new ParseError(Peek(), "Can't have more than 255 arguments."));
-                    yield break;
-                }
-                counter++;
-                yield return Expression();
-            } while (Match(TokenType.Comma));
+            if(!Check(TokenType.RightParen))
+            {
+                var counter = 0;
+                do {
+                    // maximum args; for compat with bytecode version
+                    if (counter >= 255) {
+                        yield return ExprResult.Err(new ParseError(Peek(), "Can't have more than 255 arguments."));
+                        yield break;
+                    }
+                    counter++;
+                    yield return Expression();
+                } while (Match(TokenType.Comma));
+            }
         }
 
         private ExprResult Primary()
