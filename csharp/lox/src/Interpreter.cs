@@ -12,10 +12,25 @@ namespace lox
 
     public class Interpreter : ExprVisitor<Result>, StmtVisitor<Result>
     {
-        private Env Env = new();
+        private static readonly Env Globals = new();
+        private Env Env = Globals;
         
         //helper for emulating Result<void,error>
         private object Void => null;
+
+        private class Clock : Callable
+        {
+            public int Arity => 0;
+            public Result<object, RuntimeError> Call(Interpreter interpreter, IEnumerable<object> args) =>
+                Result.Ok((double)DateTimeOffset.Now.ToUnixTimeMilliseconds()/1000);
+            public override string ToString() =>
+                "<native fn: clock>";
+        }
+
+        public Interpreter()
+        {
+            Globals.Define("clock", new Clock());
+        }
 
         public IEnumerable<RuntimeError> Interpret(List<Stmt> statements) =>
             statements
