@@ -16,6 +16,17 @@
             "stopAtEntry": false
         },
         {
+            "name": "fibonacci",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/lox/src/bin/Debug/net5.0/lox.dll",
+            "args": ["${workspaceFolder}/programs/fibonacci.lox"],
+            "cwd": "${workspaceFolder}/lox/src",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        },
+        {
             "name": ".NET Core Attach",
             "type": "coreclr",
             "request": "attach",

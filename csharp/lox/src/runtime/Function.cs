@@ -27,10 +27,27 @@ namespace lox.runtime
                 env.Define(k.Lexeme,v);
             }
 
-            return interpreter.ExecuteBlock(declaration.body, env);
+            try
+            {
+                return interpreter.ExecuteBlock(declaration.body, env);
+            }
+            catch(Return retVal)
+            {
+                return Result<object, RuntimeError>.Ok(retVal.Value);
+            }
         }
 
         public override string ToString() =>
             $"<fn {declaration.name.Lexeme}>";
+    }
+
+    public class Return: Exception
+    {
+        public object Value {get;}
+
+        public Return(object value)
+        {
+            Value = value;
+        }
     }
 }

@@ -243,7 +243,13 @@ namespace lox.runtime
 
         public Result<object, RuntimeError> VisitReturnStmt(ReturnStmt stmt)
         {
-            throw new NotImplementedException();
+            var result =
+                from value in stmt is null ? Result.Ok(null) : Eval(stmt.value)
+                select value;
+            // an interesting, if not questionable, hack to immediately short circuit
+            // the call stack and return directly to the caller
+            return
+                result.Bind<object>(v => throw new Return(v));
         }
 
         public Result<object, RuntimeError> VisitVarStmt(VarStmt stmt)

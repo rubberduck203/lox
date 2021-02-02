@@ -100,7 +100,13 @@ namespace lox.parsing
         private StmtResult Statement()
         {
             /*
-             * statement -> exprStmt | forStmt | ifStmt | printStmt | whileStmt | block ;
+             * statement -> exprStmt
+             *              | forStmt
+             *              | ifStmt
+             *              | printStmt
+             *              | returnStmt
+             *              | whileStmt
+             *              | block ;
              */
             if (Match(TokenType.For))
                 return ForStatement();
@@ -108,6 +114,8 @@ namespace lox.parsing
                 return IfStatement();
             if (Match(TokenType.Print))
                 return PrintStatement();
+            if (Match(TokenType.Return))
+                return ReturnStatement();
             if (Match(TokenType.While))
                 return WhileStatement();
             if (Match(TokenType.LeftBrace))
@@ -193,12 +201,20 @@ namespace lox.parsing
             select new IfStmt(condition, thenBranch, elseBranch) as Stmt;
 
         private StmtResult PrintStatement() =>
-            /*
-             * printStmt -> "print" expression ";" ; 
-             */
+            // printStmt -> "print" expression ";" ;
             from value in Expression()
-            from token in Consume(TokenType.Semicolon, "Expected ';' after value.")
+            from token in Consume(TokenType.Semicolon, "Expected ';' after expression.")
             select new PrintStmt(value) as Stmt;
+
+        private StmtResult ReturnStatement()
+        {
+            // returnStmt → "return" expression? ";" ;
+            var keyword = PreviousToken();
+            return
+                from value in !Check(TokenType.Semicolon) ? Expression() : ExprResult.Ok(null)
+                from token in Consume(TokenType.Semicolon, "Expected ';' after return value.")
+                select new ReturnStmt(keyword, value) as Stmt;
+        }
 
         private StmtResult WhileStatement() =>
             // whileStmt → "while" "(" expression ")" statement ;
