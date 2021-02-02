@@ -62,7 +62,7 @@ namespace lox.runtime
                 TokenType.Greater => evalNumeric((l,r) => l > r),
                 TokenType.GreaterEqual => evalNumeric((l,r)  => l >=r),
                 TokenType.Less => evalNumeric((l,r) => l < r),
-                TokenType.LessEqual => evalNumeric((l,r) => l < r),
+                TokenType.LessEqual => evalNumeric((l,r) => l <= r),
                 TokenType.BangEqual => Result.Ok(!IsEqual(left, right)),
                 TokenType.EqualEqual => Result.Ok(IsEqual(left, right)),
                 TokenType.Minus => evalNumeric((l,r) => l - r),
