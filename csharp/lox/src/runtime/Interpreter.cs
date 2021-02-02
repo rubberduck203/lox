@@ -12,8 +12,8 @@ namespace lox.runtime
 
     public class Interpreter : ExprVisitor<Result>, StmtVisitor<Result>
     {
-        private static readonly Env Globals = new();
-        private Env Env = Globals;
+        public Env Globals { get; } = new();
+        private Env Env;
         
         //helper for emulating Result<void,error>
         private object Void => null;
@@ -29,6 +29,7 @@ namespace lox.runtime
 
         public Interpreter()
         {
+            Env = Globals;
             Globals.Define("clock", new Clock());
         }
 
@@ -181,7 +182,7 @@ namespace lox.runtime
         public Result VisitBlockStmt(BlockStmt stmt) =>
             ExecuteBlock(stmt.statements, new Env(this.Env));
 
-        private Result ExecuteBlock(List<Stmt> statements, Env env)
+        internal Result ExecuteBlock(List<Stmt> statements, Env env)
         {
             // it's a little crude to modify the internal state like this
             // the alternative is to pass the env along and provide an immutable copy to the functions
@@ -212,8 +213,10 @@ namespace lox.runtime
 
         public Result VisitFunctionStmt(FunctionStmt stmt)
         {
-            throw new NotImplementedException();
+            Env.Define(stmt.name.Lexeme, new Function(stmt));
+            return Result.Ok(Void);
         }
+
 
         public Result VisitIfStmt(IfStmt stmt) =>
             from condition in EvalCondition(stmt.condition)
