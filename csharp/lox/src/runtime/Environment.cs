@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using lox.ast;
 using lox.monads;
 
-namespace lox
+namespace lox.runtime
 {
     using Result = Result<object,RuntimeError>;
     public class Env

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using lox.monads;
 
-namespace lox
+namespace lox.runtime
 {
     public interface Callable
     {

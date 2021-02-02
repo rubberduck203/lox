@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using lox.ast;
 using lox.monads;
 
-namespace lox
+namespace lox.runtime
 {
     using Result = lox.monads.Result<object, RuntimeError>;
     public record RuntimeError(Token token, string message);
