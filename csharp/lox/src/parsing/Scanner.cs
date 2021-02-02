@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
-namespace lox
+
+using lox.ast;
+
+namespace lox.parsing
 {
     using Result = lox.monads.Result<Token, LexError>;
 

@@ -2,10 +2,10 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
-using lox.ast;
 using lox.monads;
+using lox.ast;
 
-namespace lox
+namespace lox.parsing
 {
     using ExprResult = lox.monads.Result<Expr, ParseError>;
     using StmtResult = lox.monads.Result<Stmt, ParseError>;

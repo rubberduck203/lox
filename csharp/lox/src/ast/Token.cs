@@ -1,4 +1,4 @@
-namespace lox {
+namespace lox.ast {
     public record Token
     {
         public TokenType TokenType {get;}

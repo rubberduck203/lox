@@ -1,6 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+
+using lox.ast;
+using lox.parsing;
 using lox.runtime;
 
 namespace lox
