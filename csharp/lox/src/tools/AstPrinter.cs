@@ -14,10 +14,12 @@ namespace lox.tools
             {"group", 0},
             {"literal", 0},
             {"unary", 0},
-            // {"functionStmt", 0},
             {"print", 0},
             {"var", 0},
             {"call", 0},
+            {"function", 0},
+            {"return", 0},
+            {"if", 0}
         };
 
         private readonly List<string> Labels = new();
@@ -34,7 +36,6 @@ namespace lox.tools
             return
                 $"digraph {{{Environment.NewLine}{labels}{Environment.NewLine}{graph}{Environment.NewLine}}}";
         }
-            
 
         public string Format(string nodeName, Expr expr)
         {
@@ -66,12 +67,14 @@ namespace lox.tools
             var nodeName = NodeName("call");
             Labels.Add(FormatLabel(nodeName, "call"));
             var callee = expr.callee.Accept(this);
-            var args = 
+
+            var args =
                 expr.arguments
                 .Select(a => a.Accept(this))
-                .Aggregate((acc,cur) => $"{acc} {cur}");
+                .Select(a => $"\t{callee} -> {a}{Environment.NewLine}")
+                .Aggregate((acc,cur) => $"{acc}{cur}");
 
-            return $"{nodeName} -> {callee} -> {{{args}}}";
+            return $"{nodeName} -> {callee}{Environment.NewLine}{args}";
         }
 
         public string VisitGetExpr(GetExpr expr)
@@ -144,12 +147,26 @@ namespace lox.tools
 
         public string VisitFunctionStmt(FunctionStmt stmt)
         {
-            return String.Empty;
+            var nodeName = NodeName("function");
+            Labels.Add(FormatLabel(nodeName, stmt.name.Lexeme));
+            return 
+                stmt.body
+                .Select(a => a.Accept(this))
+                .Select(stmt => $"\t{nodeName} -> {stmt}")
+                .Aggregate((acc,cur) => $"{acc}{Environment.NewLine}{cur}");
         }
 
         public string VisitIfStmt(IfStmt stmt)
         {
-            throw new NotImplementedException();
+            var nodeName = NodeName("if");
+            Labels.Add(FormatLabel(nodeName, "if"));
+
+            var condition = stmt.condition.Accept(this);
+            var thenBranch = stmt.thenBranch.Accept(this);
+            if (stmt.elseBranch is null)
+                return $"\t{nodeName} -> {condition}{Environment.NewLine}\t{nodeName} -> {thenBranch}";
+            var elseBranch = stmt.elseBranch.Accept(this);
+            return $"\t{nodeName} -> {condition}{Environment.NewLine}\t{nodeName} -> {thenBranch}{Environment.NewLine}\t{nodeName} -> {elseBranch}";
         }
 
         public string VisitPrintStmt(PrintStmt stmt)
@@ -161,7 +178,11 @@ namespace lox.tools
 
         public string VisitReturnStmt(ReturnStmt stmt)
         {
-            throw new NotImplementedException();
+            var nodeName = NodeName("return");
+            Labels.Add(FormatLabel(nodeName, "return"));
+            if (stmt.value is null)
+                return nodeName;
+            return Format(nodeName, stmt.value);
         }
 
         public string VisitVarStmt(VarStmt stmt)
