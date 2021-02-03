@@ -13,23 +13,32 @@ namespace lox.tools
             {"binop", 0},
             {"group", 0},
             {"literal", 0},
-            {"unary", 0}
+            {"unary", 0},
+            // {"functionStmt", 0},
+            {"print", 0},
+            {"var", 0},
+            {"call", 0},
         };
 
         private readonly List<string> Labels = new();
 
-        public string Print(Expr expr)
+        public string Print(List<Stmt> statements)
         {
-            var graph = expr.Accept(this);
+            var graph =
+                statements
+                .Select(s => s.Accept(this))
+                .Aggregate((acc,cur) => $"{acc}{Environment.NewLine}{cur}");
+
+            // var graph = expr.Accept(this);
             var labels = Labels.Aggregate((acc,cur) => $"{acc}{Environment.NewLine}{cur}");
             return
-                $"digraph {{{Environment.NewLine}{labels}{Environment.NewLine}{Environment.NewLine}{graph}{Environment.NewLine}}}";
+                $"digraph {{{Environment.NewLine}{labels}{Environment.NewLine}{graph}{Environment.NewLine}}}";
         }
             
 
         public string Format(string nodeName, Expr expr)
         {
-            return $"{nodeName} -> {expr.Accept(this)}";
+            return $"\t{nodeName} -> {expr.Accept(this)}";
         }
 
         public string Format(string nodeName, Expr left, Expr right)
@@ -54,7 +63,15 @@ namespace lox.tools
 
         public string VisitCallExpr(CallExpr expr)
         {
-            throw new System.NotImplementedException();
+            var nodeName = NodeName("call");
+            Labels.Add(FormatLabel(nodeName, "call"));
+            var callee = expr.callee.Accept(this);
+            var args = 
+                expr.arguments
+                .Select(a => a.Accept(this))
+                .Aggregate((acc,cur) => $"{acc} {cur}");
+
+            return $"{nodeName} -> {callee} -> {{{args}}}";
         }
 
         public string VisitGetExpr(GetExpr expr)
@@ -105,7 +122,9 @@ namespace lox.tools
 
         public string VisitVariableExpr(VariableExpr expr)
         {
-            throw new System.NotImplementedException();
+            var nodeName = NodeName("var");
+            Labels.Add(FormatLabel(nodeName, expr.name.Lexeme));
+            return nodeName;
         }
 
         public string VisitBlockStmt(BlockStmt stmt)
@@ -125,7 +144,7 @@ namespace lox.tools
 
         public string VisitFunctionStmt(FunctionStmt stmt)
         {
-            throw new NotImplementedException();
+            return String.Empty;
         }
 
         public string VisitIfStmt(IfStmt stmt)
@@ -135,7 +154,9 @@ namespace lox.tools
 
         public string VisitPrintStmt(PrintStmt stmt)
         {
-            throw new NotImplementedException();
+            var nodeName = NodeName("print");
+            Labels.Add(FormatLabel(nodeName, "print"));
+            return Format(nodeName, stmt.expr);
         }
 
         public string VisitReturnStmt(ReturnStmt stmt)

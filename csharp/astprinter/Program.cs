@@ -1,30 +1,65 @@
 ﻿using System;
-using lox.tools;
+using System.IO;
+using System.Linq;
+
 using lox.ast;
+using lox.tools;
 
 namespace lox.astprinter
 {
+    enum ExitCode : int {
+        Success = 0,
+        LexError = 1,
+        ParseError = 2,
+    }
+
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            //TODO: Use parser to accept input and print out the AST
-            var expr = new BinaryExpr(
-                new UnaryExpr(
-                    new Token(TokenType.Minus, "-", null, 1),
-                    new LiteralExpr(123)
-                ),
-                new Token(TokenType.Star, "*", null, 1),
-                new GroupingExpr(
-                    new BinaryExpr(
-                        new LiteralExpr(45.67),
-                        new Token(TokenType.Plus, "+", null, 1),
-                        new LiteralExpr(1)
-                    )
-                )
-            );
+            var filePath = args[0];
+            var contents = File.ReadAllText(filePath);
+            var lexer = new parsing.Scanner(contents);
+            var tokenResults = lexer.ScanTokens().ToList();
+            var lexErrors = tokenResults.Where(r => r.IsErr());
+            if (lexErrors.Any())
+            {
+                Console.Error.WriteLine($"Failed to lex {filePath}.");
+                foreach(var error in lexErrors.Select(r => r.Error()))
+                {
+                    Console.Error.WriteLine($"[line {error.line}]: {error.message}");
+                }
+                return (int)ExitCode.LexError;
+            }
 
-           Console.WriteLine(new AstPrinter().Print(expr));
+            var tokens =
+                tokenResults
+                .Select(r => r.Unwrap())
+                .Where(t =>
+                    t.TokenType != TokenType.WhiteSpace
+                    && t.TokenType != TokenType.Comment
+                    && t.TokenType != TokenType.NewLine
+                )
+                .ToList();
+            var parser = new parsing.Parser(tokens);
+            var parseResults = parser.Parse();
+
+            var parseErrors = parseResults.Where(r => r.IsErr());
+            var parseFailed = false;
+            if (parseErrors.Any())
+            {
+                parseFailed = true;
+                Console.Error.WriteLine($"Failed to parse {filePath}.");
+                foreach(var error in parseErrors.Select(r => r.Error()))
+                {
+                    Console.Error.WriteLine($"[token {error.token}]: {error.message}");
+                }
+            }
+
+            var statements = parseResults.Where(r => r.IsOk()).Select(r => r.Unwrap()).ToList();
+            Console.WriteLine(new AstPrinter().Print(statements));
+
+            return parseFailed ? (int)ExitCode.ParseError : (int)ExitCode.Success;
         }
     }
 }
