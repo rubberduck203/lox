@@ -16,6 +16,7 @@ namespace lox.tools
             {"unary", 0},
             {"print", 0},
             {"var", 0},
+            {"varDecl", 0},
             {"call", 0},
             {"function", 0},
             {"return", 0},
@@ -187,7 +188,9 @@ namespace lox.tools
 
         public string VisitVarStmt(VarStmt stmt)
         {
-            throw new NotImplementedException();
+            var nodeName = NodeName("varDecl");
+            Labels.Add(FormatLabel(nodeName, $"var {stmt.name.Lexeme} ="));
+            return Format(nodeName, stmt.initializer);
         }
 
         public string VisitWhileStmt(WhileStmt stmt)
