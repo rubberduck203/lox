@@ -186,18 +186,23 @@ namespace lox.runtime
         {
             // it's a little crude to modify the internal state like this
             // the alternative is to pass the env along and provide an immutable copy to the functions
+            // I know we use result types, but we use exceptions to `return`,
+            // so we must wrap the execution in a try/finally to ensure we restore the environment.
             var prev = this.Env;
             this.Env = env;
-
-            var result =
-                statements
-                .Aggregate(
-                    Result<object,RuntimeError>.Ok(null),
-                    (acc,curr) => acc.Bind(_ => Execute(curr))
-                );
-
-            this.Env = prev;
-            return result;
+            try
+            {
+                return
+                    statements
+                    .Aggregate(
+                        Result<object,RuntimeError>.Ok(null),
+                        (acc,curr) => acc.Bind(_ => Execute(curr))
+                    );
+            }
+            finally
+            {
+                this.Env = prev;
+            }
         }
 
         public Result VisitClassStmt(ClassStmt stmt)
