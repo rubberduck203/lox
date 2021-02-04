@@ -20,7 +20,8 @@ namespace lox.tools
             {"call", 0},
             {"function", 0},
             {"return", 0},
-            {"if", 0}
+            {"if", 0},
+            {"assignment", 0}
         };
 
         private readonly List<string> Labels = new();
@@ -53,7 +54,9 @@ namespace lox.tools
 
         public string VisitAssignExpr(AssignExpr expr)
         {
-            throw new System.NotImplementedException();
+            var nodeName = NodeName("assignment");
+            Labels.Add(FormatLabel(nodeName, $"{expr.name.Lexeme} ="));
+            return Format(nodeName, expr.value);
         }
 
         public string VisitBinaryExpr(BinaryExpr expr)
@@ -73,7 +76,7 @@ namespace lox.tools
                 expr.arguments
                 .Select(a => a.Accept(this))
                 .Select(a => $"\t{callee} -> {a}{Environment.NewLine}")
-                .Aggregate((acc,cur) => $"{acc}{cur}");
+                .Aggregate(String.Empty, (acc,cur) => $"{acc}{cur}");
 
             return $"{nodeName} -> {callee}{Environment.NewLine}{args}";
         }
@@ -143,13 +146,13 @@ namespace lox.tools
 
         public string VisitExpressionStmt(ExpressionStmt stmt)
         {
-            throw new NotImplementedException();
+            return stmt.expr.Accept(this);
         }
 
         public string VisitFunctionStmt(FunctionStmt stmt)
         {
             var nodeName = NodeName("function");
-            Labels.Add(FormatLabel(nodeName, stmt.name.Lexeme));
+            Labels.Add(FormatLabel(nodeName, $"fn {stmt.name.Lexeme}"));
             return 
                 stmt.body
                 .Select(a => a.Accept(this))
