@@ -9,9 +9,11 @@ namespace lox.runtime
     public class Function : Callable
     {
         private readonly FunctionStmt declaration;
+        private readonly Env closure;
 
-        public Function(FunctionStmt declaration)
+        public Function(FunctionStmt declaration, Env closure)
         {
+            this.closure = closure;
             this.declaration = declaration;
             Arity = declaration.parameters.Count();
         }
@@ -20,7 +22,7 @@ namespace lox.runtime
 
         public Result<object, RuntimeError> Call(Interpreter interpreter, IEnumerable<object> args)
         {
-            var env = new Env(interpreter.Globals);
+            var env = new Env(this.closure);
             //todo: assert args == arity
             foreach(var(k,v) in declaration.parameters.Zip(args))
             {

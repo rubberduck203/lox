@@ -218,7 +218,7 @@ namespace lox.runtime
 
         public Result VisitFunctionStmt(FunctionStmt stmt)
         {
-            Env.Define(stmt.name.Lexeme, new Function(stmt));
+            Env.Define(stmt.name.Lexeme, new Function(stmt, this.Env));
             return Result.Ok(Void);
         }
 
