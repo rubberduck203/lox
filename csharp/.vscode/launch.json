@@ -27,6 +27,17 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug with Lox File",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/lox/src/bin/Debug/net5.0/lox.dll",
+            "args": ["${workspaceFolder}/${relativeFile}"],
+            "cwd": "${workspaceFolder}/lox/src",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        },
+        {
             "name": "AST Printer",
             "type": "coreclr",
             "request": "launch",
