@@ -14,7 +14,8 @@ namespace lox.runtime
     {
         public Env Globals { get; } = new();
         private Env Env;
-        
+        private readonly Dictionary<Expr, int> locals = new();
+
         //helper for emulating Result<void,error>
         private object Void => null;
 
@@ -43,10 +44,28 @@ namespace lox.runtime
         private Result Execute(Stmt stmt) =>
             stmt.Accept(this);
 
+        internal void Resolve(Expr expr, int depth)
+        {
+            //the java verion relies on reference equality,
+            //but we used record types... here be dragons
+            //https://craftinginterpreters.com/resolving-and-binding.html#interpreting-resolved-variables
+            // this.locals.Add(expr, depth);
+            this.locals[expr] = depth;
+        }
+
         public Result VisitAssignExpr(AssignExpr expr) =>
             from value in Eval(expr.value)
-            from _ in Env.Assign(expr.name, value)
+            from _ in AssignExpr(expr, value)
             select value;
+
+        private Result AssignExpr(AssignExpr expr, object value)
+        {
+            if (this.locals.TryGetValue(expr, out var distance))
+            {
+                return Env.AssignAt(distance, expr.name, value);
+            }
+            return this.Globals.Assign(expr.name, value);
+        }
 
         public Result VisitBinaryExpr(BinaryExpr expr) =>
             from left in Eval(expr.left)
@@ -160,7 +179,16 @@ namespace lox.runtime
             };
 
         public Result VisitVariableExpr(VariableExpr expr) =>
-            Env.Lookup(expr.name);
+            LookupVariable(expr.name, expr);
+
+        private Result LookupVariable(Token name, Expr expr)
+        {
+            if (this.locals.TryGetValue(expr, out var distance))
+            {
+                return Env.LookupAt(distance, name);
+            }
+            return this.Globals.Lookup(name);
+        }
 
         private Result Eval(Expr expr) =>
             expr.Accept(this);
@@ -221,7 +249,6 @@ namespace lox.runtime
             Env.Define(stmt.name.Lexeme, new Function(stmt, this.Env));
             return Result.Ok(Void);
         }
-
 
         public Result VisitIfStmt(IfStmt stmt) =>
             from condition in EvalCondition(stmt.condition)

@@ -111,6 +111,8 @@ namespace lox
                 .Select(r => r.Unwrap())
                 .ToList();
 
+            var resolver = new Resolver(Interpreter);
+            var _ = resolver.Resolve(statements);
             var runtimeErrors = Interpreter.Interpret(statements);
             foreach(var error in runtimeErrors)
             {

@@ -45,6 +45,18 @@ namespace lox.runtime
             return Result.Err(new RuntimeError(name, $"Undefined variable '{name.Lexeme}'."));
         }
 
+        public Result AssignAt(int distance, Token name, object value)
+        {
+            // in theory, we don't have to check, we know it's here.
+            var ancestor = Ancestor(distance);
+            if (ancestor.values.ContainsKey(name.Lexeme))
+            {
+                ancestor.values[name.Lexeme] = value;
+                return Result.Ok((object)null);
+            }
+            return Result.Err(new RuntimeError(name, $"Undefined variable '{name.Lexeme}'."));
+        }
+
         public Result Lookup(Token name)
         {
             if (values.TryGetValue(name.Lexeme, out var value))
@@ -54,6 +66,39 @@ namespace lox.runtime
                 return enclosing.Lookup(name);
 
             return Result.Err(new RuntimeError(name, $"Undefined variable '{name.Lexeme}'."));
+        }
+
+        public void Print()
+        {
+            foreach(var (k,v) in this.values)
+            {
+                Console.WriteLine($"{k: v}");
+            }
+            if (enclosing is not null)
+            {
+                Console.WriteLine("Enclosing environment:");
+                enclosing.Print();
+            }
+        }
+
+        public Result LookupAt(int distance, Token name)
+        {
+            // in theory, we don't have to check, we know it's here.
+            if (Ancestor(distance).values.TryGetValue(name.Lexeme, out var value))
+            {
+                return Result.Ok(value);
+            }
+            return Result.Err(new RuntimeError(name, $"Undefined variable {name.Lexeme}."));
+        }
+
+        private Env Ancestor(int distance)
+        {
+            var env = this;
+            for(int i = 0; i < distance; i++)
+            {
+                env = env.enclosing;
+            }
+            return env;
         }
     }
 }

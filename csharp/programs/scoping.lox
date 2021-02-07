@@ -1,0 +1,12 @@
+// should print "global" twice
+// but won't at the end of ch 10
+var a = "global";
+{
+  fun showA() {
+    print a;
+  }
+
+  showA();
+  var a = "block";
+  showA();
+}
