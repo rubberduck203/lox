@@ -2,12 +2,13 @@ use crate::value::Value;
 
 #[repr(u8)]
 pub enum OpCode {
-    Return = 0
+    Constant = 0,
+    Return = 1
 }
 
 pub struct Chunk {
     code: Vec<u8> ,
-    constants: Vec<Value>
+    pub constants: Vec<Value> //TODO: encapsulate
 }
 
 impl Chunk {
@@ -22,6 +23,12 @@ impl Chunk {
     pub fn write_opcode(&mut self, opcode: OpCode)
     {
         self.write(opcode as u8);
+    }
+
+    pub fn write_usize(&mut self, val: usize) {
+        for byte in val.to_ne_bytes().iter() {
+            self.code.push(*byte);
+        }
     }
 
     //TODO: return opcodes and move iteration code from debug to here
@@ -47,14 +54,14 @@ mod tests {
     fn write_byte() {
         let mut chunk = Chunk::new();
         chunk.write(OpCode::Return as u8);
-        assert_eq!(0, chunk.code[0]);
+        assert_eq!(1, chunk.code[0]);
     }
 
     #[test]
     fn write_opcode() {
         let mut chunk = Chunk::new();
         chunk.write_opcode(OpCode::Return);
-        assert_eq!(0, chunk.code[0]);
+        assert_eq!(1, chunk.code[0]);
     }
 
     #[test]
@@ -62,5 +69,17 @@ mod tests {
         let mut chunk = Chunk::new();
         let idx = chunk.add_constant(23.0);
         assert_eq!(0, idx);
+    }
+
+    #[test]
+    fn write_usize() {
+        let mut chunk = Chunk::new();
+        let constant = chunk.add_constant(1.2);
+        chunk.write_opcode(OpCode::Constant);
+        assert_eq!(1, chunk.code.len());
+
+        chunk.write_usize(constant);
+
+        assert_eq!(9, chunk.code.len());
     }
 }
