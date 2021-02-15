@@ -1,4 +1,4 @@
-use rs_lox::chunk::{Chunk, OpCode};
+use rs_lox::{Chunk, OpCode};
 use rs_lox::debug;
 
 fn main() {
