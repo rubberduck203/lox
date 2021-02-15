@@ -34,7 +34,7 @@ mod tests {
     use crate::chunk::OpCode;
 
     #[test]
-    fn applesauce(){
+    fn disassemble_runs() {
         let mut chunk = Chunk::new();
         chunk.write_opcode(OpCode::Return);
         disassemble_chunk(&chunk, "a chunk");

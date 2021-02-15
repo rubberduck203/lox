@@ -1,5 +1,9 @@
 mod chunk;
 pub use chunk::*;
+
+mod value;
+pub use value::*;
+
 pub mod debug;
 
 #[cfg(test)]
