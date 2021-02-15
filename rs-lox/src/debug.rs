@@ -15,6 +15,13 @@ pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
 fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
     print!("{:04}\t", offset);
     let bytes = chunk.bytes();
+
+    if offset > 0 && chunk.lines[offset] == chunk.lines[offset - 1] {
+        print!("   | ");
+    } else {
+        print!("{:04} ", chunk.lines[offset]);
+    }
+
     let instruction = bytes[offset];
 
     match instruction {
@@ -58,7 +65,7 @@ mod tests {
     #[test]
     fn disassemble_runs() {
         let mut chunk = Chunk::new();
-        chunk.write_opcode(OpCode::Return);
+        chunk.write_opcode(OpCode::Return, 1);
         disassemble_chunk(&chunk, "a chunk");
     }
 }
