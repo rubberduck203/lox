@@ -30,7 +30,6 @@ impl VM {
                     //TODO: something else...
                     debug::print_value(&constant);
                     println!();
-                    return Ok(())
                 }
                 1 => return Ok(()),
                 _ => return Err(InterpretError::Runtime(format!("Unknown opcode: {}", instruction)))
