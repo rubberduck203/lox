@@ -1,6 +1,5 @@
 use crate::chunk::Chunk;
 use crate::value::Value;
-use std::convert::TryInto;
 
 pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
     println!("== {} ==", name);
@@ -40,16 +39,14 @@ fn simple_instruction(name: &str, offset: usize) -> usize {
 }
 
 fn constant_instruction(name: &str, chunk: &Chunk, offset: usize) -> usize {
-    let start = offset + 1;
-    let constant_size = std::mem::size_of::<usize>();
-    let end = start + constant_size;
-    let cbytes = &chunk.bytes()[start..end];
-    let const_idx = usize::from_ne_bytes(cbytes.try_into().unwrap());
+    // skip the opcode
+    let data_offset = offset + 1;
 
-    print!("{:<16} {:04} ", name, const_idx);
-    print_value(&chunk.constants[const_idx]);
+    print!("{:<16} {:04} ", name, chunk.constant_idx(data_offset));
+    print_value(&chunk.read_constant(data_offset));
     println!();
 
+    let constant_size = Chunk::constant_idx_size();
     offset + 1 + constant_size
 }
 

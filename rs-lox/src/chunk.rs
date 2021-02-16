@@ -56,12 +56,23 @@ impl Chunk {
     }
 
     pub fn read_constant(&self, offset: usize) -> Value {
-        let start = offset + 1;
-        let constant_size = std::mem::size_of::<usize>();
-        let end = start + constant_size;
-        let cbytes = &self.code[start..end];
-        let const_idx = usize::from_ne_bytes(cbytes.try_into().unwrap());
+        let const_idx = self.constant_idx(offset);
         self.constants[const_idx]
+    }
+
+    pub fn constant_idx(&self, offset: usize) -> usize {
+        // this function is exposed so we can use it in the debug module
+
+        // instruction format := OpCode::Constant usize 
+        // Read the next sizeOf(usize) bytes (pending on architecture)
+        // The resulting usize is an index into the constants vector
+        let end = offset + Chunk::constant_idx_size();
+        let cbytes = &self.code[offset..end];
+        usize::from_ne_bytes(cbytes.try_into().expect("Couldn't convert byte vector to usize."))
+    }
+
+    pub const fn constant_idx_size() -> usize {
+        std::mem::size_of::<usize>()
     }
 }
 

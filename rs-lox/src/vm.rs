@@ -3,7 +3,7 @@ use crate::debug;
 
 pub enum InterpretError {
     Compile,
-    Runtime,
+    Runtime(String),
 }
 
 pub struct VM{ //chunk must life at least as long as the VM
@@ -31,7 +31,7 @@ impl VM {
                     return Ok(())
                 }
                 1 => return Ok(()),
-                _ => return Err(InterpretError::Runtime)
+                _ => return Err(InterpretError::Runtime(format!("Unknown opcode: {}", instruction)))
             }
         }
     }
