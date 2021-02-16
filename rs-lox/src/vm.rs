@@ -1,6 +1,7 @@
 use crate::chunk::Chunk;
 use crate::debug;
 
+#[derive(Debug)]
 pub enum InterpretError {
     Compile,
     Runtime(String),
@@ -25,6 +26,7 @@ impl VM {
             match instruction {
                 0 => {
                     let constant = chunk.read_constant(self.ip);
+                    self.ip += Chunk::constant_idx_size();
                     //TODO: something else...
                     debug::print_value(&constant);
                     println!();
@@ -40,10 +42,17 @@ impl VM {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::chunk::OpCode;
 
     #[test]
     fn create_vm() {
         let mut chunk = Chunk::new();
-        let vm = VM::new();
+        let mut vm = VM::new();
+
+        chunk.write_constant(1.2, 1);
+        chunk.write_constant(1.2, 2);
+        chunk.write_opcode(OpCode::Return, 2);
+
+        assert_eq!((), vm.interpret(&chunk).unwrap())
     }
 }

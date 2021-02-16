@@ -11,5 +11,5 @@ fn main() {
     chunk.write_opcode(OpCode::Return, 2);
 
     debug::disassemble_chunk(&chunk, "test chunk");
-    vm.interpret(&chunk);
+    vm.interpret(&chunk).unwrap();
 }
