@@ -1,4 +1,5 @@
 use crate::value::Value;
+use std::convert::TryInto;
 
 #[repr(u8)]
 pub enum OpCode {
@@ -42,9 +43,25 @@ impl Chunk {
         &self.code
     }
 
-    pub fn add_constant(&mut self, value: Value) -> usize {
+    pub fn write_constant(&mut self, value: Value, line: usize) {
+        let const_offset = self.add_constant(value);
+
+        self.write_opcode(OpCode::Constant, line);
+        self.write_usize(const_offset, line);
+    }
+
+    fn add_constant(&mut self, value: Value) -> usize {
         self.constants.push(value);
         self.constants.len() - 1
+    }
+
+    pub fn read_constant(&self, offset: usize) -> Value {
+        let start = offset + 1;
+        let constant_size = std::mem::size_of::<usize>();
+        let end = start + constant_size;
+        let cbytes = &self.code[start..end];
+        let const_idx = usize::from_ne_bytes(cbytes.try_into().unwrap());
+        self.constants[const_idx]
     }
 }
 
@@ -87,5 +104,16 @@ mod tests {
         assert_eq!(1, chunk.lines[0]);
         assert_eq!(2, chunk.lines[1]);
         assert_eq!(2, chunk.lines[8]);
+    }
+
+    #[test]
+    fn read_constant() {
+        let mut chunk = Chunk::new();
+        let const_offset = chunk.add_constant(1.2);
+        chunk.write_opcode(OpCode::Constant, 1);
+        chunk.write_usize(const_offset, 2);
+
+        let actual = chunk.read_constant(0);
+        assert_eq!(1.2, actual);
     }
 }

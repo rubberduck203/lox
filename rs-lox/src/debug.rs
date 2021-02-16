@@ -53,7 +53,7 @@ fn constant_instruction(name: &str, chunk: &Chunk, offset: usize) -> usize {
     offset + 1 + constant_size
 }
 
-fn print_value(value: &Value) {
+pub fn print_value(value: &Value) {
     print!("{}", value);
 }
 
