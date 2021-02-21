@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Rust: cargo run w/ trace",
+			// "group": "build",
+			"command": "cargo",
+			"args": ["run", "--features", "trace"],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"type": "shell"
+		}
+	]
+}

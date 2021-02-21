@@ -18,9 +18,12 @@ impl VM {
     }
 
     pub fn interpret(&mut self, chunk: &Chunk) -> Result<(), InterpretError> {
-        // self.chunk = Some(chunk);
         let instructions = chunk.bytes();
         loop {
+            if cfg!(feature = "trace") {
+                debug::disassemble_instruction(chunk, self.ip);
+            }
+
             let instruction = instructions[self.ip];
             self.ip += 1;
             match instruction {

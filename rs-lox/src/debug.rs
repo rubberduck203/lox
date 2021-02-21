@@ -11,7 +11,7 @@ pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
     }
 }
 
-fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
+pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
     print!("{:04}\t", offset);
     let bytes = chunk.bytes();
 
