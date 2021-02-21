@@ -1,4 +1,5 @@
 use crate::chunk::Chunk;
+use crate::value::Value;
 use crate::debug;
 
 #[derive(Debug)]
@@ -9,20 +10,26 @@ pub enum InterpretError {
 
 pub struct VM{ //chunk must life at least as long as the VM
     ip: usize,
+    stack: Vec<Value>
     // chunk: Option<&'a Chunk>
 }
 
 impl VM {
-    pub fn new() -> VM {
-        VM { ip: 0 }
+    pub fn new() -> VM{
+        VM { ip: 0, stack: vec![] }
     }
+
+    // fn reset_stack(&mut self) {
+    //     self.stack.clear()
+    // }
 
     pub fn interpret(&mut self, chunk: &Chunk) -> Result<(), InterpretError> {
         let instructions = chunk.bytes();
         loop {
-            if cfg!(feature = "trace") {
-                debug::disassemble_instruction(chunk, self.ip);
-            }
+            #[cfg(feature = "trace")]
+            self.print_stack();
+            #[cfg(feature = "trace")]
+            debug::disassemble_instruction(chunk, self.ip);
 
             let instruction = instructions[self.ip];
             self.ip += 1;
@@ -30,14 +37,27 @@ impl VM {
                 0 => {
                     let constant = chunk.read_constant(self.ip);
                     self.ip += Chunk::constant_idx_size();
-                    //TODO: something else...
-                    debug::print_value(&constant);
-                    println!();
+                    self.stack.push(constant);
                 }
-                1 => return Ok(()),
+                1 => {
+                    debug::print_value(&self.stack.pop().unwrap());
+                    println!();
+                    return Ok(())
+                },
                 _ => return Err(InterpretError::Runtime(format!("Unknown opcode: {}", instruction)))
             }
         }
+    }
+
+    #[cfg(feature = "trace")]
+    fn print_stack(&self) {
+        print!("\t");
+        for slot in self.stack.iter() {
+            print!("[ ");
+            debug::print_value(slot);
+            print!(" ]");
+        }
+        println!()
     }
 }
 
